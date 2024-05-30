@@ -4,6 +4,13 @@
 >
 > 原始[ChatTTS项目](https://github.com/2noise/ChatTTS)
 
+![image](https://github.com/jianchang512/ChatTTS-ui/assets/3378335/9477a6cf-28ac-4032-b3bc-c001f43312e5)
+
+
+
+https://github.com/jianchang512/ChatTTS-ui/assets/3378335/b64b767c-583a-4a24-bd71-dd766144cc04
+
+
 
 ## Windows预打包版
 
