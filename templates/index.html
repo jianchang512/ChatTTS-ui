@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link href="/static/js/bootstrap.min.css" rel="stylesheet">
+	
+	<style>
+	#upload-btn{
+		position:relative;
+	}
+	#file-input{
+		position:absolute;
+		left:0;
+		right:0;
+		top:0;
+		bottom:0;
+		width:100%;
+		height:100%;
+		z-index:1;
+		opacity:0;
+		cursor:pointer;
+		font-size:0;
+		
+	}
+	#text-input{
+		min-height:300px
+	}
+	
+	</style>
+</head>
+<body>	
+
+<div class="container my-4">
+	<div>
+		<h1 class="text-center">ChatTTS WebUI & API</h1>
+	</div>
+	<hr>
+    <div class="row justify-content-center">
+        <div class="col-12  my-2">
+            <textarea id="text-input" class="form-control" rows="3" placeholder="在此输入要转换的文本..."></textarea>
+        </div>
+		<div class="col-6 my-2">			
+			<select id="voice" class="form-control">
+				<option value="2222">男1</option>
+				<option value="7869">男2</option>
+				<option value="6653">男3</option>
+				<option value="4099">女1</option>
+				<option value="5099">女2</option>
+			</select>
+		</div>
+        <div class="col-6  my-2">			
+			<input id="prompt" class="form-control" placeholder="填写prompt，如 [oral_2][laugh_0][break_6] ，不懂请留空" />
+		</div>
+        <div class="col-12  my-2 text-center">
+            <button id="submit-btn" class="btn btn-primary">立即合成声音</button>
+			<button id="upload-btn" class="btn btn-secondary">导入txt
+				<input type="file" id="file-input" accept=".txt"  >
+			</button>
+
+        </div>
+        <div class="col-12  mt-4" >
+			<div class="row" id="audio-container"></div>
+			
+			<div class="m-2 p-2 bg-black text-white d-none" id="code"></div>
+        </div>
+    </div>
+	
+	<div class="text-center my-4">
+		<a class="btn btn-link text-secondary" href="https://github.com/2noise/ChatTTS" target="_blank">GitHub ChatTTS</a>
+		<a class="btn btn-link text-secondary" href="https://github.com/jianchang512/chatTTS-ui" target="_blank">GitHub ChatTTS-UI</a>
+	</div>
+</div>
+
+<script src="/static/js/jquery.min.js"></script>
+<script src="/static/js/layer/layer.js"></script>
+<script src="/static/js/bootstrap.bundle.min.js"></script>
+<script>
+$(document).ready(function() {
+    $('#submit-btn').click(function() {
+        var text = $('#text-input').val();
+        if (text === '') {
+            layer.alert('必须输入文本',{title:false});
+        } else {
+			let index=layer.load();
+			let data={text: text,prompt:$('#prompt').val(),voice:$('#voice').val()};
+			
+
+let js=`# python API request
+
+import requests
+
+res=requests.post('http://${location.host}/tts',data=${JSON.stringify(data)})
+print(res.json())
+
+#ok 
+{code:0,msg:'ok',filename:filename.wav,url:http://${location.host}/static/wavs/filename.wav}
+
+#error 
+{code:1,msg:"error"}
+`
+$('#code').removeClass('d-none').html(`<pre><code>${js}</code></pre>`)
+
+            $.ajax({
+                url: '/tts',
+                type: 'POST',
+                data: data,
+                timeout: 300000, 
+                success: function(response) {
+                    if (response.code === 0) {
+						let pos=response.filename.lastIndexOf('/')+1
+						let filename=response.filename.substr(pos)
+                        $('#audio-container').prepend(`<div class="col-auto mb-2 pb-2 border-bottom"><div class="fs-6 text-secondary">${filename}</div><audio controls src="${response.url}"></audio></div>`);
+                    } else {
+                        layer.alert(response.msg,{title:false});
+                    }
+                },
+                error: function(xhr, status, error) {
+                    layer.alert('发生错误: ' + error,{title:false});
+                },
+				complete:function(){
+					layer.close(index)
+				}
+            });
+        }
+    });
+	
+	$('#upload-btn').click(function() {
+        $('#file-input').click(); // Trigger file input when upload button is clicked
+    });
+    
+    $('#file-input').change(function(e) {
+        var file = e.target.files[0];
+        if(file) {
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                $('#text-input').val(e.target.result);
+            };
+            reader.readAsText(file, 'UTF-8');
+        }
+    });
+});
+</script>
+
+
+</body></html>
