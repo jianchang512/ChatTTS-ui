@@ -132,3 +132,6 @@ print(res.json())
 
 1. 点击菜单-设置-ChatTTS，填写请求地址，默认应该填写 http://127.0.0.1:9966
 2. 测试无问题后，在主界面中选择`ChatTTS`
+
+![image](https://github.com/jianchang512/ChatTTS-ui/assets/3378335/7118325f-2b9a-46ce-a584-1d5c6dc8e2da)
+   
