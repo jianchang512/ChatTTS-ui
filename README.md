@@ -80,6 +80,12 @@ https://github.com/jianchang512/ChatTTS-ui/assets/3378335/b64b767c-583a-4a24-bd7
 7. 执行 `python app.py` 启动，将自动打开浏览器窗口，默认地址 `http://127.0.0.1:9966`
 
 
+## 源码安装注意
+
+源码部署启动后，会先从 modelscope下载模型，但modelscope缺少spk_stat.pt，会报错，请点击链接 https://huggingface.co/2Noise/ChatTTS/blob/main/asset/spk_stat.pt 下载 spk_stat.pt，将该文件复制到 `项目目录/models/pzc163/chatTTS/asset/ 文件夹内`
+
+
+
 ## 修改http地址
 
 默认地址是 `http://127.0.0.1:9966`,如果想修改，可打开目录下的 `.env`文件，将 `WEB_ADDRESS=127.0.0.1:9966`改为合适的ip和端口，比如修改为`WEB_ADDRESS=192.168.0.10:9966`以便局域网可访问
