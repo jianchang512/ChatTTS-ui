@@ -1,6 +1,6 @@
 # ChatTTS webUI & API
 
-> 这是一个绑定ChatTTS的web界面项目，提供网页中使用ChatTTS合成语音及api接口服务
+> 这是一个绑定ChatTTS的web UI项目，提供网页中使用ChatTTS合成语音及api接口功能。
 >
 > 原始[ChatTTS项目](https://github.com/2noise/ChatTTS)
 
@@ -33,7 +33,7 @@ https://github.com/jianchang512/ChatTTS-ui/assets/3378335/b64b767c-583a-4a24-bd7
 		pip install nvidia-cublas-cu11 nvidia-cudnn-cu11
 	
 	```
-	另需安装 CUDA11.8 ToolKit，请自行搜索安装方法
+	另需安装 CUDA11.8+ ToolKit，请自行搜索安装方法
 7. 执行 `python3 app.py` 启动，将自动打开浏览器窗口，默认地址 `http://127.0.0.1:9966`
 
 
@@ -76,13 +76,13 @@ https://github.com/jianchang512/ChatTTS-ui/assets/3378335/b64b767c-583a-4a24-bd7
 		
 	```
 	
-	另需安装 CUDA11.8 ToolKit，请自行搜索安装方法
+	另需安装 CUDA11.8+ ToolKit，请自行搜索安装方法
 7. 执行 `python app.py` 启动，将自动打开浏览器窗口，默认地址 `http://127.0.0.1:9966`
 
 
 ## 修改http地址
 
-默认地址是 `http://127.0.0.1`,如果想修改，可打开目录下的 `.env`文件，将 `WEB_ADDRESS=127.0.0.1:9966`改为合适的ip和端口，比如修改为`WEB_ADDRESS=192.168.0.10:9966`以便局域网可访问
+默认地址是 `http://127.0.0.1:9966`,如果想修改，可打开目录下的 `.env`文件，将 `WEB_ADDRESS=127.0.0.1:9966`改为合适的ip和端口，比如修改为`WEB_ADDRESS=192.168.0.10:9966`以便局域网可访问
 
 ## 使用API请求
 
@@ -93,7 +93,9 @@ https://github.com/jianchang512/ChatTTS-ui/assets/3378335/b64b767c-583a-4a24-bd7
 请求参数:
 
 text:str 必须， 要合成语音的文字
+
 voice:int 可选，  决定音色的数字， 2222 | 7869 | 6653 | 4099 | 5099，可选其一，或者任意传入将随机使用音色
+
 prompt: str 可选，设定 笑声、停顿，例如 [oral_2][laugh_0][break_6]
 
 返回:json数据
