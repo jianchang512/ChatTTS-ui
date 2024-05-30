@@ -120,5 +120,7 @@ print(res.json())
 
 ## 在pyVideoTrans软件中使用
 
+> 升级 pyVideoTrans 到 1.82+ https://github.com/jianchang512/pyvideotrans
+
 1. 点击菜单-设置-ChatTTS，填写请求地址，默认应该填写 http://127.0.0.1:9966
 2. 测试无问题后，在主界面中选择`ChatTTS`
