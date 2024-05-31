@@ -33,7 +33,7 @@
 
 <div class="container my-4">
 	<div>
-		<h1 class="text-center">ChatTTS WebUI & API</h1>
+		<h1 class="text-center">ChatTTS WebUI & API<span class="fs-6">(v{{version}})</span></h1>
 	</div>
 	<hr>
     <div class="row justify-content-center">
@@ -67,8 +67,8 @@
     </div>
 	
 	<div class="text-center my-4">
-		<a class="btn btn-link text-secondary" href="https://github.com/2noise/ChatTTS" target="_blank">GitHub ChatTTS</a>
 		<a class="btn btn-link text-secondary" href="https://github.com/jianchang512/chatTTS-ui" target="_blank">GitHub ChatTTS-UI</a>
+		<a class="btn btn-link text-secondary" href="https://github.com/2noise/ChatTTS" target="_blank">GitHub ChatTTS</a>
 	</div>
 </div>
 
@@ -105,7 +105,7 @@ $('#code').removeClass('d-none').html(`<pre><code>${js}</code></pre>`)
                 url: '/tts',
                 type: 'POST',
                 data: data,
-                timeout: 300000, 
+                timeout: 3600000, 
                 success: function(response) {
                     if (response.code === 0) {
 						let pos=response.filename.lastIndexOf('/')+1
