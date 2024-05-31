@@ -2,6 +2,7 @@ import os,sys
 import torch,datetime
 import torch._dynamo
 torch._dynamo.config.suppress_errors = True
+os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 import ChatTTS
 from dotenv import load_dotenv
 from flask import Flask, request, render_template, jsonify,  send_from_directory

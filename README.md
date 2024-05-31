@@ -17,7 +17,6 @@ https://github.com/jianchang512/ChatTTS-ui/assets/3378335/b64b767c-583a-4a24-bd7
 
 
 
-
 ## Windows预打包版
 
 1. 从 [Releases](https://github.com/jianchang512/chatTTS-ui/releases)中下载压缩包，解压后双击 app.exe 即可使用
@@ -34,12 +33,13 @@ https://github.com/jianchang512/ChatTTS-ui/assets/3378335/b64b767c-583a-4a24-bd7
 
 	如果需要CUDA加速，执行 
 	```
-		pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu118
+	pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu118
+			
+	pip install nvidia-cublas-cu11 nvidia-cudnn-cu11
 		
-		pip install nvidia-cublas-cu11 nvidia-cudnn-cu11
-	
 	```
 	另需安装 CUDA11.8+ ToolKit，请自行搜索安装方法
+	
 7. 执行 `python3 app.py` 启动，将自动打开浏览器窗口，默认地址 `http://127.0.0.1:9966`
 
 
@@ -77,12 +77,10 @@ https://github.com/jianchang512/ChatTTS-ui/assets/3378335/b64b767c-583a-4a24-bd7
 
 	如果需要CUDA加速，执行 
 	
-	```
-		pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu118
-		
-	```
+	`pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu118`
 	
 	另需安装 CUDA11.8+ ToolKit，请自行搜索安装方法
+	
 7. 执行 `python app.py` 启动，将自动打开浏览器窗口，默认地址 `http://127.0.0.1:9966`
 
 
