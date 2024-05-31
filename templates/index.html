@@ -24,7 +24,7 @@
 		
 	}
 	#text-input{
-		min-height:300px
+		min-height:200px
 	}
 	
 	</style>
@@ -38,19 +38,28 @@
 	<hr>
     <div class="row justify-content-center">
         <div class="col-12  my-2">
-            <textarea id="text-input" class="form-control" rows="3" placeholder="在此输入要转换的文本..."></textarea>
+            <textarea id="text-input" class="form-control" rows="3" placeholder="在此输入要转换的文本,以行为单位合成..."></textarea>
         </div>
-		<div class="col-6 my-2">			
-			<select id="voice" class="form-control">
-				<option value="2222">男1</option>
-				<option value="7869">男2</option>
-				<option value="6653">男3</option>
-				<option value="4099">女1</option>
-				<option value="5099">女2</option>
+		<div class="col-5 my-2 d-flex ">
+			<select id="voice" class="form-control w-25">
+				<option value="2222">男音色1</option>
+				<option value="7869">男音色2</option>
+				<option value="6653">男音色3</option>
+				<option value="4099">女音色1</option>
+				<option value="5099">女音色2</option>
+				<option value="3333">女音色3</option>
 			</select>
+			<input id="custom_voice" data-toggle="tooltip" title="填写后将忽略左侧音色选择，以该填写值获取音色" class="form-control w-75" placeholder="自定义音色种子值，大于1的整数" type="number" min="0" />
+			
 		</div>
-        <div class="col-6  my-2">			
+        <div class="col-5  my-2">			
 			<input id="prompt" class="form-control" placeholder="填写prompt，如 [oral_2][laugh_0][break_6] ，不懂请留空" />
+		</div>
+		<div class="col-2  my-2 d-flex align-items-center">			
+			  <div class="form-check" title="如果文本中加入了控制符或效果较差，可尝试选中该项" data-toggle="tooltip">
+				<input type="checkbox" class="form-check-input" id="skip_refine">
+				<label class="form-check-label" for="skip_refine">跳过refine text</label>
+			  </div>
 		</div>
         <div class="col-12  my-2 text-center">
             <button id="submit-btn" class="btn btn-primary">立即合成声音</button>
@@ -77,13 +86,21 @@
 <script src="/static/js/bootstrap.bundle.min.js"></script>
 <script>
 $(document).ready(function() {
+  $('[data-toggle="tooltip"]').tooltip();
     $('#submit-btn').click(function() {
         var text = $('#text-input').val();
         if (text === '') {
             layer.alert('必须输入文本',{title:false});
         } else {
 			let index=layer.load();
-			let data={text: text,prompt:$('#prompt').val(),voice:$('#voice').val()};
+			let custom_voice=$('#custom_voice').val();
+			let data={
+				text: text,
+				prompt:$('#prompt').val(),
+				voice:$('#voice').val(),
+				skip_refine:$('#skip_refine').prop('checked')?1:0,
+				custom_voice:custom_voice?parseInt(custom_voice):0
+			};
 			
 
 let js=`# python API request

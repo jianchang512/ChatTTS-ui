@@ -1,8 +1,10 @@
 import os,sys
 import torch,datetime
+import torch._dynamo
+torch._dynamo.config.suppress_errors = True
 import ChatTTS
 from dotenv import load_dotenv
-from flask import Flask, request, render_template, jsonify, send_file, send_from_directory
+from flask import Flask, request, render_template, jsonify,  send_from_directory
 import logging
 from logging.handlers import RotatingFileHandler
 from waitress import serve
@@ -21,7 +23,7 @@ def get_executable_path():
         return Path(sys.executable).parent.as_posix()
     else:
         return Path.cwd().as_posix()
-VERSION='0.2'
+VERSION='0.3'
 
 ROOT_DIR=get_executable_path()
 
@@ -40,10 +42,16 @@ LOGS_DIR=LOGS_DIR_PATH.as_posix()
 
 WEB_ADDRESS = os.getenv('WEB_ADDRESS', '127.0.0.1:9966')
 
+# 默认从 modelscope 下载模型,如果想从huggingface下载模型，请将以下3行注释掉
 CHATTTS_DIR = snapshot_download('pzc163/chatTTS',cache_dir=MODEL_DIR)
 chat = ChatTTS.Chat()
 chat.load_models(source="local",local_path=CHATTTS_DIR)
 
+# 如果希望从 huggingface.co下载模型，将以下注释删掉。将上方3行内容注释掉
+#os.environ['HF_HUB_CACHE']=MODEL_DIR
+#os.environ['HF_ASSETS_CACHE']=MODEL_DIR
+#chat = ChatTTS.Chat()
+#chat.load_models()
 
 
 
@@ -87,6 +95,8 @@ def index():
 # params
 # text:待合成文字
 # voice：音色
+# custom_voice：自定义音色值
+# skip_refine: 1=跳过refine_text阶段，0=不跳过
 # prompt：
 @app.route('/tts', methods=['GET', 'POST'])
 def tts():
@@ -94,28 +104,29 @@ def tts():
     text = request.args.get("text","").strip() or request.form.get("text","").strip()
     prompt = request.form.get("prompt",'')
     try:
-        voice = int(request.form.get("voice",'2222'))
+        custom_voice=request.form.get("custom_voice",'')
+        voice = int(custom_voice) if custom_voice else int(request.form.get("voice",'2222'))
     except Exception:
         voice=2222
-    speed = 1.0
-    try:
-        speed = float(request.form.get("speed",1))
-    except:
-        pass
-    language = request.form.get("language",'')
-    app.logger.info(f"[tts]{text=}\n{voice=},{language=}\n")
+    
+    skip_refine = request.form.get("skip_refine",'0')
+    app.logger.info(f"[tts]{text=}\n{voice=},{skip_refine=}\n")
     if not text:
         return jsonify({"code": 1, "msg": "text params lost"})
     std, mean = torch.load(f'{CHATTTS_DIR}/asset/spk_stat.pt').chunk(2)
     torch.manual_seed(voice)
-    rand_spk = torch.randn(768) * std + mean
+
+    rand_spk = chat.sample_random_speaker()
+    #rand_spk = torch.randn(768) * std + mean
 
     md5_hash = hashlib.md5()
-    md5_hash.update(f"{text}-{voice}-{language}-{speed}-{prompt}".encode('utf-8'))
+    md5_hash.update(f"{text}-{voice}-{skip_refine}-{prompt}".encode('utf-8'))
     datename=datetime.datetime.now().strftime('%Y%m%d-%H_%M_%S')
     filename = datename+'-'+md5_hash.hexdigest() + ".wav"
-    
-    wavs = chat.infer([t for t in text.split("\n") if t.strip()], use_decoder=True,params_infer_code={'spk_emb': rand_spk} ,params_refine_text= {'prompt': prompt})
+    if int(skip_refine)==1:
+        wavs = chat.infer([t for t in text.split("\n") if t.strip()], use_decoder=True, skip_refine_text=True,params_infer_code={'spk_emb': rand_spk}, params_refine_text= {'prompt': prompt})
+    else:
+        wavs = chat.infer([t for t in text.split("\n") if t.strip()], use_decoder=True, params_infer_code={'spk_emb': rand_spk}, params_refine_text= {'prompt': prompt})
     # 初始化一个空的numpy数组用于之后的合并
     combined_wavdata = np.array([], dtype=wavs[0][0].dtype)  # 确保dtype与你的wav数据类型匹配
 
