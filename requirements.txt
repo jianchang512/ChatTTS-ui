@@ -1,4 +1,3 @@
-ChatTTS
 Flask
 ipython
 modelscope

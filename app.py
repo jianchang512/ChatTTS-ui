@@ -11,6 +11,8 @@ import soundfile as sf
 from pathlib import Path
 import hashlib,webbrowser
 from modelscope import snapshot_download
+import numpy as np
+
 
 def get_executable_path():
     # 这个函数会返回可执行文件所在的目录
@@ -19,6 +21,8 @@ def get_executable_path():
         return Path(sys.executable).parent.as_posix()
     else:
         return Path.cwd().as_posix()
+VERSION='0.2'
+
 ROOT_DIR=get_executable_path()
 
 MODEL_DIR_PATH=Path(ROOT_DIR+"/models")
@@ -75,7 +79,7 @@ def static_files(filename):
 
 @app.route('/')
 def index():
-    return render_template("index.html",weburl=WEB_ADDRESS)
+    return render_template("index.html",weburl=WEB_ADDRESS,version=VERSION)
 
 
 # 根据文本返回tts结果，返回 filename=文件名 url=可下载地址
@@ -102,17 +106,23 @@ def tts():
     app.logger.info(f"[tts]{text=}\n{voice=},{language=}\n")
     if not text:
         return jsonify({"code": 1, "msg": "text params lost"})
-    texts = [text]
     std, mean = torch.load(f'{CHATTTS_DIR}/asset/spk_stat.pt').chunk(2)
     torch.manual_seed(voice)
     rand_spk = torch.randn(768) * std + mean
 
-    wavs = chat.infer(texts, use_decoder=True,params_infer_code={'spk_emb': rand_spk} ,params_refine_text= {'prompt': prompt})
     md5_hash = hashlib.md5()
     md5_hash.update(f"{text}-{voice}-{language}-{speed}-{prompt}".encode('utf-8'))
     datename=datetime.datetime.now().strftime('%Y%m%d-%H_%M_%S')
     filename = datename+'-'+md5_hash.hexdigest() + ".wav"
-    sf.write(WAVS_DIR+'/'+filename, wavs[0][0], 24000)
+    
+    wavs = chat.infer([t for t in text.split("\n") if t.strip()], use_decoder=True,params_infer_code={'spk_emb': rand_spk} ,params_refine_text= {'prompt': prompt})
+    # 初始化一个空的numpy数组用于之后的合并
+    combined_wavdata = np.array([], dtype=wavs[0][0].dtype)  # 确保dtype与你的wav数据类型匹配
+
+    for wavdata in wavs:
+        combined_wavdata = np.concatenate((combined_wavdata, wavdata[0]))
+
+    sf.write(WAVS_DIR+'/'+filename, combined_wavdata, 24000)
     return jsonify({"code": 0, "msg": "ok","filename":WAVS_DIR+'/'+filename,"url":f"http://{WEB_ADDRESS}/static/wavs/{filename}"})
 
 
