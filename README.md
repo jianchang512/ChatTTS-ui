@@ -8,7 +8,7 @@
 > [查看常见问题](faq.md)
 
 
-![image](https://github.com/jianchang512/ChatTTS-ui/assets/3378335/9477a6cf-28ac-4032-b3bc-c001f43312e5)
+![image](https://github.com/jianchang512/ChatTTS-ui/assets/3378335/2675d8d9-d0c0-4d3a-b8ae-ef8091dbf4ac)
 
 
 
