@@ -1,16 +1,15 @@
 # 常见问题与报错
 
-
 **1.**  MacOS 报错 `Initializing libomp.dylib, but found libiomp5.dylib already initialized`
 
-> 答：在app.py的 import os 的下一行，添加代码
+> 答：在app.py的 `import os` 的下一行，添加代码
 >   
 > `os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'`
 
 
 **2.**  MacOS 无报错但进度条一直百分之0 卡住不动
 
-> 答：app.py中 
+> 答：app.py 中 
 > 
 > `chat.load_models(source="local",local_path=CHATTTS_DIR)` 
 > 
@@ -29,14 +28,13 @@
 
 **5.**  报错丢失文件 `Missing spk_stat.pt`
 
-
-> 答：改成从 modelscope下载模型后，会从魔塔社区下载，但该库里的模型缺少 spk_stat.pt文件
+> 答：本项目(ChatTTS-ui)默认从 modelscope 即魔塔社区下载模型，但该库里的模型缺少 spk_stat.pt文件
 > 
 >   请科学上网后从
 >
 >   https://huggingface.co/2Noise/ChatTTS/blob/main/asset/spk_stat.pt    
 > 
->  下载 spk_stat.pt， 然后复制 spk_stat.pt 到报错提示的目录下
+>  下载 spk_stat.pt， 然后复制 spk_stat.pt  到报错提示的目录下，以本项目为例，需要复制到  `models/pzc163/chatTTS/asset`  文件夹内
 
 
 **6.**  报错 `Dynamo is not supported on Python 3.12`
