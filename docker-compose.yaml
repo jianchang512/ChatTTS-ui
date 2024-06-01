@@ -1,7 +1,7 @@
 services:
-  ChatTTS-ui:
+  chat-tts-ui:
     build: .
-    container_name: ChatTTS-ui
+    container_name: chat-tts-ui
     restart: always
     volumes:
       - "./:/app"
@@ -19,5 +19,5 @@ services:
             - driver: nvidia
               capabilities: [gpu]
 networks:
-  ChatTTS-ui:
+  chat-tts-ui:
     external: true
