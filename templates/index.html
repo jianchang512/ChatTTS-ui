@@ -21,15 +21,19 @@
 		opacity:0;
 		cursor:pointer;
 		font-size:0;
-		
 	}
 	#text-input{
 		min-height:200px
 	}
-	
+
+    .btn-warning {
+      background-color: #ffc107;
+      border-color: #ffc107;
+    }
+
 	</style>
 </head>
-<body>	
+<body>
 
 <div class="container my-4">
 	<div>
@@ -38,71 +42,43 @@
 	<hr>
     <div class="row justify-content-center">
         <div class="col-12  my-2">
-            <textarea id="text-input" class="form-control d-block" rows="3" placeholder="在此输入要转换的文本,以行为单位合成..."></textarea>
-			<span class="text-secondary fs-6">除文本框必填外，其他均为可选，若不懂无需填写</span>
+            <textarea id="text-input" class="form-control" rows="3" placeholder="在此输入要转换的文本,以行为单位合成..."></textarea>
         </div>
-		<div class="col-12 my-2 ">
-			<div class="row align-items-center">
-				<div class="col align-items-center input-group">
-					<span class="input-group-text">选择音色</span>
-					<select id="voice" class="form-control">
-						<option value="2222">男音色1</option>
-						<option value="7869">男音色2</option>
-						<option value="6653">男音色3</option>
-						<option value="4099">女音色1</option>
-						<option value="5099">女音色2</option>
-						<option value="3333">女音色3</option>
-					</select>
-				</div>
-				<div class="col align-items-center input-group">
-						<span class="input-group-text" id="">自定义音色值</span>
-						<input id="custom_voice" data-toggle="tooltip" title="填写后将忽略左侧音色选择，以该填写值获取音色,例如 2000，8000等" class="form-control" placeholder="自定义音色种子值，大于1,如 3000 9000等" type="number" min="0" />
-				</div>
-				<div class="col align-items-center input-group"> 
-						<span class="input-group-text" id="">Prompt</span>
-						<input id="prompt" class="form-control" data-toggle="tooltip" title="填写prompt，如 [oral_2][laugh_0][break_6]" placeholder="填写prompt，如 [oral_2][laugh_0][break_6]" />
-				</div>
-				<div class="col align-items-center">
-				  <div class="form-check" title="如果文本中加入了控制符或效果较差，可尝试选中该项" data-toggle="tooltip">
-					<input type="checkbox" class="form-check-input" id="skip_refine">
-					<label class="form-check-label" for="skip_refine">跳过refine text</label>
-				  </div>
-				</div>
-			</div>
-		</div>
-		<div class="col-12 my-2 d-flex align-items-center justify-content-between" id="temper_wrap">
-			<div class="form-group">
-				<label for="temperature">temperature</label>
-				<input type="range" class="form-control-range" id="temperature" min='0.00001' max='1.0' step='0.00001' value='0.3' />
-				<span class="text-secondary fs-6">0.3</span>
-			</div>
-			
-			<div class="form-group">
-				<label for="top_p">top_p</label>
-				<input type="range" class="form-control-range" id="top_p" min='0.1' max='0.9' step='0.05' value='0.7' />
-				<span class="text-secondary fs-6">0.7</span>
+		<div class="col-5 my-2 d-flex ">
+			<select id="voice" class="form-control w-25">
+				<option value="2222">男音色1</option>
+				<option value="7869">男音色2</option>
+				<option value="6653">男音色3</option>
+				<option value="4099">女音色1</option>
+				<option value="5099">女音色2</option>
+				<option value="3333">女音色3</option>
+			</select>
+			<input id="custom_voice" data-toggle="tooltip" title="填写后将忽略左侧音色选择，以该填写值获取音色" class="form-control w-75" placeholder="自定义音色种子值，大于1的整数" type="number" min="0" />
 
-			</div>
-			
-			<div class="form-group">
-				<label for="top_k">top_k</label>
-				<input type="range" class="form-control-range" id="top_k" min='1' max='20' step='1' value='20' />
-				<span class="text-secondary fs-6">20</span>
-				
-			</div>			
 		</div>
-        <div class="col-12  my-4 text-center">
+        <div class="col-5  my-2">
+			<input id="prompt" class="form-control" placeholder="填写prompt，如 [oral_2][laugh_0][break_6] ，不懂请留空" />
+		</div>
+		<div class="col-2  my-2 d-flex align-items-center">
+			  <div class="form-check" title="如果文本中加入了控制符或效果较差，可尝试选中该项" data-toggle="tooltip">
+				<input type="checkbox" class="form-check-input" id="skip_refine">
+				<label class="form-check-label" for="skip_refine">跳过refine text</label>
+			  </div>
+		</div>
+        <div class="col-12  my-2 text-center">
             <button id="submit-btn" class="btn btn-primary">立即合成声音</button>
 			<button id="upload-btn" class="btn btn-secondary">导入txt
 				<input type="file" id="file-input" accept=".txt"  >
 			</button>
-
+            <button id="show-js-btn" class="btn btn-info">显示API调用示例</button>
+            <button id="clear-btn" class="btn btn-warning">清理所有wav文件</button>
         </div>
         <div class="col-12  mt-4" >
-			<div class="row" id="audio-container"></div>			
+            <div class="row" id="audio-container"></div>
+            <div class="m-2 bg-black text-white d-none" id="code"></div>
         </div>
     </div>
-	
+
 	<div class="text-center my-4">
 		<a class="btn btn-link text-secondary" href="https://github.com/jianchang512/chatTTS-ui" target="_blank">GitHub ChatTTS-UI</a>
 		<a class="btn btn-link text-secondary" href="https://github.com/2noise/ChatTTS" target="_blank">GitHub ChatTTS</a>
@@ -113,72 +89,131 @@
 <script src="/static/js/layer/layer.js"></script>
 <script src="/static/js/bootstrap.bundle.min.js"></script>
 <script>
+
 $(document).ready(function() {
   $('[data-toggle="tooltip"]').tooltip();
-  
-  $('#temper_wrap input[type="range"]').change(function(){
-	$(this).next().text(($(this).val()));
-  });
-    $('#submit-btn').click(function() {
-        var text = $('#text-input').val();
-        if (text === '') {
-            layer.alert('必须输入文本',{title:false});
-        } else {
-			let index=layer.load();
-			let custom_voice=$('#custom_voice').val();
-			let data={
-				text: text,
-				prompt:$('#prompt').val(),
-				voice:$('#voice').val(),
-				temperature:parseFloat($('#temperature').val()),
-				top_p:parseFloat($('#top_p').val()),
-				top_k:parseFloat($('#top_k').val()),
-				skip_refine:$('#skip_refine').prop('checked')?1:0,
-				custom_voice:custom_voice?parseInt(custom_voice):0
-			};
-			
 
+    let audioGenerated = false; // 用于跟踪是否生成了音频文件
+    let jsCode = ''; // 用于存储生成的 let js 代码
 
-            $.ajax({
-                url: '/tts',
-                type: 'POST',
-                data: data,
-                timeout: 3600000, 
-                success: function(response) {
-                    if (response.code === 0) {
-						let pos=response.filename.lastIndexOf('/')+1
-						let filename=response.filename.substr(pos)
-                        $('#audio-container').prepend(`<div class="col-auto mb-2 pb-2 border-bottom"><div class="fs-6 text-secondary">${filename}</div><audio controls src="${response.url}"></audio></div>`);
-                    } else {
-                        layer.alert(response.msg,{title:false});
-                    }
-                },
-                error: function(xhr, status, error) {
-                    layer.alert('发生错误: ' + error,{title:false});
-                },
-				complete:function(){
-					layer.close(index)
-				}
+  $('#submit-btn').click(function() {
+    var text = $('#text-input').val();
+    if (text === '') {
+      layer.alert('必须输入文本',{title:false});
+    } else {
+      let index = layer.load();
+      let custom_voice = $('#custom_voice').val();
+      let data = {
+        text: text,
+        prompt: $('#prompt').val(),
+        voice: $('#voice').val(),
+        skip_refine: $('#skip_refine').prop('checked') ? 1 : 0,
+        custom_voice: custom_voice ? parseInt(custom_voice) : 0
+      };
+
+      $.ajax({
+        url: '/tts',
+        type: 'POST',
+        data: data,
+        timeout: 3600000,
+        success: function(response) {
+          if (response.code === 0) {
+            response.audio_files.forEach(function(audio) {
+              let pos = audio.filename.lastIndexOf('/') + 1;
+              let filename = audio.filename.substr(pos);
+              $('#audio-container').append(`<div class="col-12 mb-2 pb-2 border-bottom">
+                                              <div class="fs-6 text-secondary">${filename}</div>
+                                              <audio controls src="${audio.url}"></audio>
+                                              <div>推理时长: ${audio.inference_time} 秒</div>
+                                              <div>生成时长: ${audio.audio_duration} 秒</div>
+                                            </div>`);
             });
+
+            audioGenerated = true; // 标记音频文件已生成
+
+jsCode=`# API调用示例代码
+
+import requests
+
+res=requests.post('http://${location.host}/tts',data=${JSON.stringify(data)})
+print(res.json())
+
+#ok
+{code:0,msg:'ok',audio_files:[{filename:filename.wav,url:http://${location.host}/static/wavs/filename.wav}]}
+
+#error
+{code:1,msg:"error"}
+`
+          } else {
+            layer.alert(response.msg,{title:false});
+          }
+        },
+        error: function(xhr, status, error) {
+          layer.alert('发生错误: ' + error,{title:false});
+        },
+        complete: function() {
+          layer.close(index);
         }
-    });
-	
-	$('#upload-btn').click(function() {
-        $('#file-input').click(); // Trigger file input when upload button is clicked
-    });
-    
-    $('#file-input').change(function(e) {
-        var file = e.target.files[0];
-        if(file) {
-            var reader = new FileReader();
-            reader.onload = function(e) {
-                $('#text-input').val(e.target.result);
-            };
-            reader.readAsText(file, 'UTF-8');
+      });
+    }
+  });
+
+  $('#show-js-btn').click(function() {
+    if (audioGenerated) {
+      $('#code').toggleClass('d-none');
+      $('#show-js-btn').toggleClass('btn-warning');
+      if (!$('#code').hasClass('d-none')) {
+        $('#code').html(`<pre><code>${jsCode}</code></pre>`);
+      }
+    } else {
+      layer.alert('请先生成音频文件', {title: false});
+    }
+  });
+
+  $('#upload-btn').click(function() {
+    $('#file-input').click(); // Trigger file input when upload button is clicked
+  });
+
+  $('#file-input').change(function(e) {
+    var file = e.target.files[0];
+    if (file) {
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        $('#text-input').val(e.target.result);
+      };
+      reader.readAsText(file, 'UTF-8');
+    }
+  });
+
+
+    $('#clear-btn').click(function() {
+    layer.confirm('是否要清楚所有wav文件', {
+      btn: ['是', '否'] // 按钮
+    }, function() {
+      // 点击“是”按钮
+      $.ajax({
+        url: '/clear_wavs',
+        type: 'POST',
+        success: function(response) {
+          if (response.code === 0) {
+            layer.alert('清理成功', {title: false});
+          } else {
+            layer.alert('清理失败: ' + response.msg, {title: false});
+          }
+        },
+        error: function(xhr, status, error) {
+          layer.alert('发生错误: ' + error, {title: false});
         }
+      });
     });
+  });
+
+
 });
+
+
 </script>
 
 
-</body></html>
+</body>
+</html>
