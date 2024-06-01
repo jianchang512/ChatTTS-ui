@@ -39,7 +39,7 @@
 	pip install nvidia-cublas-cu11 nvidia-cudnn-cu11
 		
 	```
-	另需安装 CUDA11.8+ ToolKit，请自行搜索安装方法
+	另需安装 CUDA11.8+ ToolKit，请自行搜索安装方法 或参考 https://juejin.cn/post/7318704408727519270
 	
 7. 执行 `python3 app.py` 启动，将自动打开浏览器窗口，默认地址 `http://127.0.0.1:9966`
 
@@ -80,7 +80,7 @@
 	
 	`pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu118`
 	
-	另需安装 CUDA11.8+ ToolKit，请自行搜索安装方法
+	另需安装 CUDA11.8+ ToolKit，请自行搜索安装方法或参考 https://juejin.cn/post/7318704408727519270
 	
 7. 执行 `python app.py` 启动，将自动打开浏览器窗口，默认地址 `http://127.0.0.1:9966`
 
@@ -91,8 +91,22 @@
 
 2. 注意 modelscope 仅允许中国大陆ip下载模型，如果遇到 proxy 类错误，请关闭代理。如果你希望从 huggingface.co 下载模型，请打开 `app.py` 查看大约第50行-60行的注释。
 
+```
+# 默认从 modelscope 下载模型,如果想从huggingface下载模型，请将以下3行注释掉
+CHATTTS_DIR = snapshot_download('pzc163/chatTTS',cache_dir=MODEL_DIR)
+chat = ChatTTS.Chat()
+chat.load_models(source="local",local_path=CHATTTS_DIR)
 
-[更多常见问题与报错解决方法](faq.md)
+# 如果希望从 huggingface.co下载模型，将以下注释删掉。将上方3行内容注释掉
+#os.environ['HF_HUB_CACHE']=MODEL_DIR
+#os.environ['HF_ASSETS_CACHE']=MODEL_DIR
+#chat = ChatTTS.Chat()
+#chat.load_models()
+
+```
+
+
+## [常见问题与报错解决方法](faq.md)
 
 
 ## 修改http地址
@@ -107,21 +121,21 @@
 
 **请求参数:**
 
-text:str 必须， 要合成语音的文字
+text:	str 必须， 要合成语音的文字
 
-voice:int 可选，默认 2222,  决定音色的数字， 2222 | 7869 | 6653 | 4099 | 5099，可选其一，或者任意传入将随机使用音色
+voice:	int 可选，默认 2222,  决定音色的数字， 2222 | 7869 | 6653 | 4099 | 5099，可选其一，或者任意传入将随机使用音色
 
-prompt: str 可选，默认 空， 设定 笑声、停顿，例如 [oral_2][laugh_0][break_6]
+prompt:	str 可选，默认 空， 设定 笑声、停顿，例如 [oral_2][laugh_0][break_6]
 
-temperature: float 可选，  默认 0.3
+temperature:	float 可选，  默认 0.3
 
-top_p: float  可选， 默认 0.7
+top_p:	float  可选， 默认 0.7
 
-top_k: int  可选， 默认 20
+top_k:	int  可选， 默认 20
 
-skip_refine:  int   可选， 默认0， 1=跳过 refine text，0=不跳过
+skip_refine:	int   可选， 默认0， 1=跳过 refine text，0=不跳过
 
-custom_voice: int  可选， 默认0，自定义获取音色值时的种子值，需要大于0的整数，如果设置了则以此为准，将忽略 `voice`
+custom_voice:	int  可选， 默认0，自定义获取音色值时的种子值，需要大于0的整数，如果设置了则以此为准，将忽略 `voice`
 
 
 **返回:json数据**
