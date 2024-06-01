@@ -60,7 +60,12 @@
 > 答：如果是英伟达显卡，请将cuda升级到11.8+
 
 
-**10.** ChatTTS原始项目新版本有兼容问题，可能会报错 “报错 Normalizer pynini WeTextProcessing nemo_text_processing ”
+**10**. 下载模型时出现 proxy 类型错误
+
+答：默认会从 modelscope 下载模型，但 modelscope 仅允许中国大陆ip下载，如果遇到 proxy 类错误，请关闭代理。如果你希望从 huggingface.co 下载模型，请打开 `app.py` 查看大约第50行-60行的代码注释。
+
+
+**11.** ChatTTS原始项目新版本有兼容问题，可能会报错 “报错 Normalizer pynini WeTextProcessing nemo_text_processing ”
 
 解决方法：
 新版使用了 nemo_text_processing  和  pynini 来处理中文，但遗憾的是，pynini压根无法在windows平台安装和使用，要使用，也只能安装在WSL子系统上。
