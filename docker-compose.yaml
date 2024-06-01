@@ -18,6 +18,3 @@ services:
           devices:
             - driver: nvidia
               capabilities: [gpu]
-networks:
-  chat-tts-ui:
-    external: true
