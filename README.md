@@ -64,6 +64,7 @@
 5. 安装依赖 `pip3 install -r requirements.txt`
 6. 安装torch `pip3 install torch torchaudio`
 7. 执行 `python3 app.py` 启动，将自动打开浏览器窗口，默认地址 `http://127.0.0.1:9966`
+8. Macos下可能会到一些问题，请查看 [常见问题与报错解决方法](faq.md)
 
 
 ## Windows源码部署
