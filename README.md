@@ -13,8 +13,9 @@
 
 
 试听合成语音效果
- 
-https://github.com/jianchang512/ChatTTS-ui/assets/3378335/73014bb7-c85d-4de0-bc1b-ce06f1c0f8d3
+
+https://github.com/jianchang512/ChatTTS-ui/assets/3378335/03cf1c0f-0245-44b5-8007-370d9db2bda8
+
 
 
 
