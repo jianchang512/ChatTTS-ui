@@ -93,6 +93,7 @@
 2. ChatTTS原始项目新版本有兼容问题，可能会报错 “报错 Normalizer pynini WeTextProcessing nemo_text_processing ”
 
 解决方法：
+
 新版使用了 nemo_text_processing  和  pynini 来处理中文，但遗憾的是，pynini压根无法在windows平台安装和使用，要使用，也只能安装在WSL子系统上。
 
 不管给出的什么安装方式， 比如 
@@ -113,6 +114,7 @@ pip install pynini==2.1.5 Cython   WeTextProcessing
 
 ![image](https://github.com/2noise/ChatTTS/assets/3378335/5bdd3dc8-0c7c-485f-b5dc-613f14917319)
 
+或者 chat.infer() 添加参数 do_text_normalization=False， chat.infer(do_text_normalization=False)
 
 
 
