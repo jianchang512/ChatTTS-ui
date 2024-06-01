@@ -146,7 +146,7 @@ def tts():
         'temperature':temperature,
         'top_P':top_p,
         'top_K':top_k
-    }, params_refine_text= {'prompt': prompt})
+    }, params_refine_text= {'prompt': prompt},do_text_normalization=False)
     # 初始化一个空的numpy数组用于之后的合并
     combined_wavdata = np.array([], dtype=wavs[0][0].dtype)  # 确保dtype与你的wav数据类型匹配
 

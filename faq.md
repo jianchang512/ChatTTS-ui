@@ -86,3 +86,5 @@ pip install pynini==2.1.5 Cython   WeTextProcessing
 
 
 问题解决
+
+或者 chat.infer() 添加参数 do_text_normalization=False， chat.infer(do_text_normalization=False)
