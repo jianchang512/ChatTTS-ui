@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+	<title>ChatTTS WebUI & API - v{{version}}</title>
     <link href="/static/js/bootstrap.min.css" rel="stylesheet">
 	
 	<style>
@@ -227,8 +228,10 @@ print(res.json())
 
     $('#clear-btn').click(function() {
     layer.confirm('是否要清除所有wav文件', {
-      btn: ['是', '否']
+      btn: ['是', '否'],
+	  title:false
     }, function() {
+	  layer.msg('清理中...')	 
       $.ajax({
         url: '/clear_wavs',
         type: 'POST',

@@ -93,6 +93,8 @@
 
 2. 注意 modelscope 仅允许中国大陆ip下载模型，如果遇到 proxy 类错误，请关闭代理。如果你希望从 huggingface.co 下载模型，请打开 `app.py` 查看大约第50行-60行的注释。
 
+3. 如果需要GPU加速，必须是英伟达显卡，并且安装 cuda版本的torch。`pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu118`
+
 ```
 # 默认从 modelscope 下载模型,如果想从huggingface下载模型，请将以下3行注释掉
 CHATTTS_DIR = snapshot_download('pzc163/chatTTS',cache_dir=MODEL_DIR)
