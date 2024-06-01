@@ -8,7 +8,7 @@
 
 > 界面预览
 >
-> ![image](https://github.com/jianchang512/ChatTTS-ui/assets/3378335/51108df5-e7d8-4337-8a30-7175765c64a3)
+> ![image](https://github.com/jianchang512/ChatTTS-ui/assets/3378335/6ed7c993-3882-4c34-9abd-f0635b133012)
 >
 
 
@@ -115,7 +115,7 @@ chat.load_models(source="local",local_path=CHATTTS_DIR)
 
 默认地址是 `http://127.0.0.1:9966`,如果想修改，可打开目录下的 `.env`文件，将 `WEB_ADDRESS=127.0.0.1:9966`改为合适的ip和端口，比如修改为`WEB_ADDRESS=192.168.0.10:9966`以便局域网可访问
 
-## 使用API请求
+## 使用API请求 v0.5+
 
 **请求方法:** POST
 
@@ -123,42 +123,58 @@ chat.load_models(source="local",local_path=CHATTTS_DIR)
 
 **请求参数:**
 
-text:	str 必须， 要合成语音的文字
+text:	str| 必须， 要合成语音的文字
 
-voice:	int 可选，默认 2222,  决定音色的数字， 2222 | 7869 | 6653 | 4099 | 5099，可选其一，或者任意传入将随机使用音色
+voice:	int| 可选，默认 2222,  决定音色的数字， 2222 | 7869 | 6653 | 4099 | 5099，可选其一，或者任意传入将随机使用音色
 
-prompt:	str 可选，默认 空， 设定 笑声、停顿，例如 [oral_2][laugh_0][break_6]
+prompt:	str| 可选，默认 空， 设定 笑声、停顿，例如 [oral_2][laugh_0][break_6]
 
-temperature:	float 可选，  默认 0.3
+temperature:	float| 可选，  默认 0.3
 
-top_p:	float  可选， 默认 0.7
+top_p:	float|  可选， 默认 0.7
 
-top_k:	int  可选， 默认 20
+top_k:	int|  可选， 默认 20
 
-skip_refine:	int   可选， 默认0， 1=跳过 refine text，0=不跳过
+skip_refine:	int|   可选， 默认0， 1=跳过 refine text，0=不跳过
 
-custom_voice:	int  可选， 默认0，自定义获取音色值时的种子值，需要大于0的整数，如果设置了则以此为准，将忽略 `voice`
+custom_voice:	int|  可选， 默认0，自定义获取音色值时的种子值，需要大于0的整数，如果设置了则以此为准，将忽略 `voice`
 
 
 **返回:json数据**
 
+成功返回:
+	{code:0,msg:ok,audio_files:[dict1,dict2]}
+	
+	其中 audio_files 是字典数组，每个元素dict为 {filename:wav文件绝对路径，url:可下载的wav网址}
 
-code=0 成功，filename=wav文件名，url=可下载的wav网址
+失败返回:
 
-code=1 失败，msg=错误原因
+	{code:1,msg:错误原因}
 
 ```
 
+# API调用代码
+
 import requests
 
-res=requests.post('http://127.0.0.1:9966/tts',data={"text":"你好啊亲爱的朋友。[laugh]","voice":2222,"prompt":'[oral_2][laugh_0][break_6]'})
+res = requests.post('http://127.0.0.1:9966/tts', data={
+  "text": "若不懂无需填写",
+  "prompt": "",
+  "voice": "3333",
+  "temperature": 0.3,
+  "top_p": 0.7,
+  "top_k": 20,
+  "skip_refine": 0,
+  "custom_voice": 0
+})
 print(res.json())
 
-#成功
-{code:0,msg:'ok',filename:1.wav,url:http://${location.host}/static/wavs/1.wav}
+#ok
+{code:0, msg:'ok', audio_files:[{filename: E:/python/chattts/static/wavs/20240601-22_12_12-c7456293f7b5e4dfd3ff83bbd884a23e.wav, url: http://127.0.0.1:9966/static/wavs/20240601-22_12_12-c7456293f7b5e4dfd3ff83bbd884a23e.wav}]}
 
-#error 
-{code:1,msg:"error"}
+#error
+{code:1, msg:"error"}
+
 
 ```
 
