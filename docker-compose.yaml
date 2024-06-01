@@ -7,6 +7,7 @@ services:
       - "./:/app"
     ports:
       - 9966:9966
+    user: "${UID}:${GID}"
     environment:
       LOG_LEVEL: DEBUG
       WEB_ADDRESS: 127.0.0.1:9966
