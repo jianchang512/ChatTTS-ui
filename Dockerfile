@@ -4,7 +4,4 @@ WORKDIR /app
 
 COPY . ./
 
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh
-RUN uv venv && \
-    source .venv/bin/activate &&  \
-    uv pip install -r requirements.txt
+RUN pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
