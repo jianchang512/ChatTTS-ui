@@ -88,6 +88,7 @@
 ## 源码安装注意
 
 1. 源码部署启动后，会先从 modelscope下载模型，但modelscope缺少spk_stat.pt，会报错，请点击链接 https://huggingface.co/2Noise/ChatTTS/blob/main/asset/spk_stat.pt 下载 spk_stat.pt，将该文件复制到 `项目目录/models/pzc163/chatTTS/asset/ 文件夹内`
+
 2. 注意 modelscope 仅允许中国大陆ip下载模型，如果遇到 proxy 类错误，请关闭代理。如果你希望从 huggingface.co 下载模型，请打开 `app.py` 查看大约第50行-60行的代码注释。
 
 [更多常见问题与报错解决方法](faq.md)
@@ -99,19 +100,31 @@
 
 ## 使用API请求
 
-请求方法:POST
+**请求方法:** POST
 
-请求地址: http://127.0.0.1:9966/tts
+**请求地址:** http://127.0.0.1:9966/tts
 
-请求参数:
+**请求参数:**
 
 text:str 必须， 要合成语音的文字
 
-voice:int 可选，  决定音色的数字， 2222 | 7869 | 6653 | 4099 | 5099，可选其一，或者任意传入将随机使用音色
+voice:int 可选，默认 2222,  决定音色的数字， 2222 | 7869 | 6653 | 4099 | 5099，可选其一，或者任意传入将随机使用音色
 
-prompt: str 可选，设定 笑声、停顿，例如 [oral_2][laugh_0][break_6]
+prompt: str 可选，默认 空， 设定 笑声、停顿，例如 [oral_2][laugh_0][break_6]
 
-返回:json数据
+temperature: float 可选，  默认 0.3
+
+top_p: float  可选， 默认 0.7
+
+top_k: int  可选， 默认 20
+
+skip_refine:  int   可选， 默认0， 1=跳过 refine text，0=不跳过
+
+custom_voice: int  可选， 默认0，自定义获取音色值时的种子值，需要大于0的整数，如果设置了则以此为准，将忽略 `voice`
+
+
+**返回:json数据**
+
 
 code=0 成功，filename=wav文件名，url=可下载的wav网址
 
