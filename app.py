@@ -31,8 +31,6 @@ LOGS_DIR_PATH=Path(ROOT_DIR+"/logs")
 LOGS_DIR_PATH.mkdir(parents=True, exist_ok=True)
 LOGS_DIR=LOGS_DIR_PATH.as_posix()
 
-WEB_ADDRESS = os.getenv('WEB_ADDRESS', '127.0.0.1:9966')
-
 import soundfile as sf
 import ChatTTS
 import datetime
@@ -46,7 +44,8 @@ import hashlib,webbrowser
 from modelscope import snapshot_download
 import numpy as np
 
-
+# 读取 .env 变量
+WEB_ADDRESS = os.getenv('WEB_ADDRESS', '127.0.0.1:9966')
 
 
 # 默认从 modelscope 下载模型,如果想从huggingface下载模型，请将以下3行注释掉
