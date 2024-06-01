@@ -8,6 +8,8 @@ torch._dynamo.config.cache_size_limit = 64
 torch._dynamo.config.suppress_errors = True
 torch.set_float32_matmul_precision('high')
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
+VERSION='0.6'
+
 def get_executable_path():
     # 这个函数会返回可执行文件所在的目录
     if getattr(sys, 'frozen', False):
@@ -15,7 +17,6 @@ def get_executable_path():
         return Path(sys.executable).parent.as_posix()
     else:
         return Path.cwd().as_posix()
-VERSION='0.5'
 
 ROOT_DIR=get_executable_path()
 
@@ -44,12 +45,8 @@ import hashlib,webbrowser
 from modelscope import snapshot_download
 import numpy as np
 import time
-
-
 # 读取 .env 变量
 WEB_ADDRESS = os.getenv('WEB_ADDRESS', '127.0.0.1:9966')
-
-
 
 # 默认从 modelscope 下载模型,如果想从huggingface下载模型，请将以下3行注释掉
 CHATTTS_DIR = snapshot_download('pzc163/chatTTS',cache_dir=MODEL_DIR)
@@ -178,8 +175,13 @@ def tts():
         "inference_time": inference_time_rounded,
         "audio_duration": audio_duration_rounded
     })
+    result_dict={"code": 0, "msg": "ok", "audio_files": audio_files}
+    # 兼容pyVideoTrans接口调用
+    if len(audio_files)==1:
+        result_dict["filename"]=audio_files[0]['filename']
+        result_dict["url"]=audio_files[0]['url']
 
-    return jsonify({"code": 0, "msg": "ok", "audio_files": audio_files})
+    return jsonify(result_dict)
 
 def ClearWav(directory):
     # 获取../static/wavs目录中的所有文件和目录
