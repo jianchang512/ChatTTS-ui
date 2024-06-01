@@ -1,0 +1,23 @@
+services:
+  ChatTTS-ui:
+    build: .
+    container_name: ChatTTS-ui
+    restart: always
+    volumes:
+      - "./:/app"
+    ports:
+      - 9966:9966
+    environment:
+      LOG_LEVEL: DEBUG
+      WEB_ADDRESS: 127.0.0.1:9966
+      NVIDIA_VISIBLE_DEVICES: all
+    command: python3 app.py
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              capabilities: [gpu]
+networks:
+  ChatTTS-ui:
+    external: true
