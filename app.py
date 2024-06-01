@@ -168,7 +168,6 @@ def tts():
     sample_rate = 24000  # Assuming 24kHz sample rate
     audio_duration = len(combined_wavdata) / sample_rate
     audio_duration_rounded = round(audio_duration, 2)
-    app.logger.info(f"音频时长: {audio_duration_rounded} 秒")
     print(f"音频时长: {audio_duration_rounded} 秒")
 
     sf.write(WAVS_DIR+'/'+filename, combined_wavdata, 24000)
