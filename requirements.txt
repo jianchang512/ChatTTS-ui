@@ -10,4 +10,3 @@ tokenizers
 transformers
 vector-quantize-pytorch
 vocos
-soundfile
