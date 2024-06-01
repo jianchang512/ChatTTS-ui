@@ -1,22 +1,13 @@
-import os,sys
-import torch,datetime
+import os
+import sys
+from pathlib import Path
+import torch
 import torch._dynamo
 torch._dynamo.config.suppress_errors = True
+torch._dynamo.config.cache_size_limit = 64
+torch._dynamo.config.suppress_errors = True
+torch.set_float32_matmul_precision('high')
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
-import ChatTTS
-from dotenv import load_dotenv
-from flask import Flask, request, render_template, jsonify,  send_from_directory
-import logging
-from logging.handlers import RotatingFileHandler
-from waitress import serve
-load_dotenv()
-import soundfile as sf
-from pathlib import Path
-import hashlib,webbrowser
-from modelscope import snapshot_download
-import numpy as np
-
-
 def get_executable_path():
     # 这个函数会返回可执行文件所在的目录
     if getattr(sys, 'frozen', False):
@@ -24,7 +15,7 @@ def get_executable_path():
         return Path(sys.executable).parent.as_posix()
     else:
         return Path.cwd().as_posix()
-VERSION='0.3'
+VERSION='0.4'
 
 ROOT_DIR=get_executable_path()
 
@@ -40,8 +31,23 @@ LOGS_DIR_PATH=Path(ROOT_DIR+"/logs")
 LOGS_DIR_PATH.mkdir(parents=True, exist_ok=True)
 LOGS_DIR=LOGS_DIR_PATH.as_posix()
 
-
 WEB_ADDRESS = os.getenv('WEB_ADDRESS', '127.0.0.1:9966')
+
+import soundfile as sf
+import ChatTTS
+import datetime
+from dotenv import load_dotenv
+from flask import Flask, request, render_template, jsonify,  send_from_directory
+import logging
+from logging.handlers import RotatingFileHandler
+from waitress import serve
+load_dotenv()
+import hashlib,webbrowser
+from modelscope import snapshot_download
+import numpy as np
+
+
+
 
 # 默认从 modelscope 下载模型,如果想从huggingface下载模型，请将以下3行注释掉
 CHATTTS_DIR = snapshot_download('pzc163/chatTTS',cache_dir=MODEL_DIR)
@@ -63,8 +69,10 @@ log = logging.getLogger('werkzeug')
 log.handlers[:] = []
 log.setLevel(logging.WARNING)
 
-app = Flask(__name__, static_folder=ROOT_DIR+'/static', static_url_path='/static',
-            template_folder=ROOT_DIR+'/templates')
+app = Flask(__name__, 
+    static_folder=ROOT_DIR+'/static', 
+    static_url_path='/static',
+    template_folder=ROOT_DIR+'/templates')
 
 root_log = logging.getLogger()  # Flask的根日志记录器
 root_log.handlers = []
@@ -93,11 +101,15 @@ def index():
 
 # 根据文本返回tts结果，返回 filename=文件名 url=可下载地址
 # 请求端根据需要自行选择使用哪个
-# params
+# params:
+#
 # text:待合成文字
 # voice：音色
 # custom_voice：自定义音色值
 # skip_refine: 1=跳过refine_text阶段，0=不跳过
+# temperature
+# top_p
+# top_k
 # prompt：
 @app.route('/tts', methods=['GET', 'POST'])
 def tts():
@@ -105,12 +117,17 @@ def tts():
     text = request.args.get("text","").strip() or request.form.get("text","").strip()
     prompt = request.form.get("prompt",'')
     try:
-        custom_voice=request.form.get("custom_voice",'')
-        voice = int(custom_voice) if custom_voice else int(request.form.get("voice",'2222'))
+        custom_voice=int(request.form.get("custom_voice",0))
+        voice =  custom_voice if custom_voice>0  else int(request.form.get("voice",2222))
     except Exception:
         voice=2222
-    
+    print(f'{voice=},{custom_voice=}')
+    temperature = float(request.form.get("temperature",0.3))
+    top_p = float(request.form.get("top_p",0.7))
+    top_k = int(request.form.get("top_k",20))
+
     skip_refine = request.form.get("skip_refine",'0')
+    
     app.logger.info(f"[tts]{text=}\n{voice=},{skip_refine=}\n")
     if not text:
         return jsonify({"code": 1, "msg": "text params lost"})
@@ -124,10 +141,12 @@ def tts():
     md5_hash.update(f"{text}-{voice}-{skip_refine}-{prompt}".encode('utf-8'))
     datename=datetime.datetime.now().strftime('%Y%m%d-%H_%M_%S')
     filename = datename+'-'+md5_hash.hexdigest() + ".wav"
-    if int(skip_refine)==1:
-        wavs = chat.infer([t for t in text.split("\n") if t.strip()], use_decoder=True, skip_refine_text=True,params_infer_code={'spk_emb': rand_spk}, params_refine_text= {'prompt': prompt})
-    else:
-        wavs = chat.infer([t for t in text.split("\n") if t.strip()], use_decoder=True, params_infer_code={'spk_emb': rand_spk}, params_refine_text= {'prompt': prompt})
+    wavs = chat.infer([t for t in text.split("\n") if t.strip()], use_decoder=True, skip_refine_text=True if int(skip_refine)==1 else False,params_infer_code={
+        'spk_emb': rand_spk,
+        'temperature':temperature,
+        'top_P':top_p,
+        'top_K':top_k
+    }, params_refine_text= {'prompt': prompt})
     # 初始化一个空的numpy数组用于之后的合并
     combined_wavdata = np.array([], dtype=wavs[0][0].dtype)  # 确保dtype与你的wav数据类型匹配
 
@@ -135,6 +154,7 @@ def tts():
         combined_wavdata = np.concatenate((combined_wavdata, wavdata[0]))
 
     sf.write(WAVS_DIR+'/'+filename, combined_wavdata, 24000)
+
     return jsonify({"code": 0, "msg": "ok","filename":WAVS_DIR+'/'+filename,"url":f"http://{request.host}/static/wavs/{filename}"})
 
 

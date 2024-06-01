@@ -87,7 +87,35 @@
 
 ## 源码安装注意
 
-源码部署启动后，会先从 modelscope下载模型，但modelscope缺少spk_stat.pt，会报错，请点击链接 https://huggingface.co/2Noise/ChatTTS/blob/main/asset/spk_stat.pt 下载 spk_stat.pt，将该文件复制到 `项目目录/models/pzc163/chatTTS/asset/ 文件夹内`
+1. 源码部署启动后，会先从 modelscope下载模型，但modelscope缺少spk_stat.pt，会报错，请点击链接 https://huggingface.co/2Noise/ChatTTS/blob/main/asset/spk_stat.pt 下载 spk_stat.pt，将该文件复制到 `项目目录/models/pzc163/chatTTS/asset/ 文件夹内`
+
+
+2. ChatTTS原始项目新版本有兼容问题，可能会报错 “报错 Normalizer pynini WeTextProcessing nemo_text_processing ”
+
+解决方法：
+新版使用了 nemo_text_processing  和  pynini 来处理中文，但遗憾的是，pynini压根无法在windows平台安装和使用，要使用，也只能安装在WSL子系统上。
+
+不管给出的什么安装方式， 比如 
+
+```
+pip install pynini==2.1.5 Cython   WeTextProcessing
+
+```
+
+都是无法在Windows上正确安装的
+
+![image](https://github.com/2noise/ChatTTS/assets/3378335/e32c50d1-492c-4b72-958b-78af0575e662)
+
+
+解决方法:
+
+打开 ChatTTS/core.py, 大约143行，注释掉接下来的7行，问题解决
+
+![image](https://github.com/2noise/ChatTTS/assets/3378335/5bdd3dc8-0c7c-485f-b5dc-613f14917319)
+
+
+
+
 
 [更多常见问题与报错解决方法](faq.md)
 
