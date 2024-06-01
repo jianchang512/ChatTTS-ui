@@ -1,6 +1,6 @@
 import os,sys
 from pathlib import Path
-import ChatTTS
+
 def get_executable_path():
     # 这个函数会返回可执行文件所在的目录
     if getattr(sys, 'frozen', False):
@@ -15,19 +15,11 @@ MODEL_DIR_PATH.mkdir(parents=True, exist_ok=True)
 MODEL_DIR=MODEL_DIR_PATH.as_posix()
 os.environ['HF_HUB_CACHE']=MODEL_DIR
 os.environ['HF_ASSETS_CACHE']=MODEL_DIR
-
+import ChatTTS
 import torch,datetime
 import torch._dynamo
 torch._dynamo.config.suppress_errors = True
-
-
-torch.manual_seed(1000)
-print(torch.randn(768))
-exit()
-
-
 import soundfile as sf
-
 import numpy as np
 
 
@@ -47,11 +39,11 @@ LOGS_DIR=LOGS_DIR_PATH.as_posix()
 
 
 
-
+# cong huggingface 下载模型
 chat = ChatTTS.Chat()
-
-
 chat.load_models(force_redownload=True)
+
+exit()
 
 text="你好啊朋友们,听说今天是个好日子,难道不是吗？"
 prompt='[oral_2][laugh_0][break_0]'
@@ -66,5 +58,5 @@ combined_wavdata = np.array([], dtype=wavs[0][0].dtype)  # 确保dtype与你的w
 
 for wavdata in wavs:
     combined_wavdata = np.concatenate((combined_wavdata, wavdata[0]))
+sf.write('test.wav', combined_wavdata, 24000)
 
-sf.write("0.wav", combined_wavdata, 24000)

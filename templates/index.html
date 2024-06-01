@@ -49,17 +49,39 @@
 				<option value="5099">女音色2</option>
 				<option value="3333">女音色3</option>
 			</select>
-			<input id="custom_voice" data-toggle="tooltip" title="填写后将忽略左侧音色选择，以该填写值获取音色" class="form-control w-75" placeholder="自定义音色种子值，大于1的整数" type="number" min="0" />
+			<input id="custom_voice" data-toggle="tooltip" title="填写后将忽略左侧音色选择，以该填写值获取音色" class="form-control w-75" placeholder="自定义音色种子值，大于1,如 3000 9000等" type="number" min="0" />
 			
 		</div>
         <div class="col-5  my-2">			
 			<input id="prompt" class="form-control" placeholder="填写prompt，如 [oral_2][laugh_0][break_6] ，不懂请留空" />
 		</div>
+		
 		<div class="col-2  my-2 d-flex align-items-center">			
 			  <div class="form-check" title="如果文本中加入了控制符或效果较差，可尝试选中该项" data-toggle="tooltip">
 				<input type="checkbox" class="form-check-input" id="skip_refine">
 				<label class="form-check-label" for="skip_refine">跳过refine text</label>
 			  </div>
+		</div>
+		<div class="col-12 d-flex align-items-center justify-content-between" id="temper_wrap">
+			<div class="form-group">
+				<label for="temperature">temperature</label>
+				<input type="range" class="form-control-range" id="temperature" min='0.00001' max='1.0' step='0.00001' value='0.3' />
+				<span class="text-secondary fs-6">0.3</span>
+			</div>
+			
+			<div class="form-group">
+				<label for="top_p">top_p</label>
+				<input type="range" class="form-control-range" id="top_p" min='0.1' max='0.9' step='0.05' value='0.7' />
+				<span class="text-secondary fs-6">0.7</span>
+
+			</div>
+			
+			<div class="form-group">
+				<label for="top_k">top_k</label>
+				<input type="range" class="form-control-range" id="top_k" min='1' max='20' step='1' value='20' />
+				<span class="text-secondary fs-6">20</span>
+				
+			</div>			
 		</div>
         <div class="col-12  my-2 text-center">
             <button id="submit-btn" class="btn btn-primary">立即合成声音</button>
@@ -70,7 +92,6 @@
         </div>
         <div class="col-12  mt-4" >
 			<div class="row" id="audio-container"></div>			
-			<div class="m-2 bg-black text-white d-none" id="code"></div>
         </div>
     </div>
 	
@@ -86,6 +107,10 @@
 <script>
 $(document).ready(function() {
   $('[data-toggle="tooltip"]').tooltip();
+  
+  $('#temper_wrap input[type="range"]').change(function(){
+	$(this).next().text(($(this).val()));
+  });
     $('#submit-btn').click(function() {
         var text = $('#text-input').val();
         if (text === '') {
@@ -97,25 +122,14 @@ $(document).ready(function() {
 				text: text,
 				prompt:$('#prompt').val(),
 				voice:$('#voice').val(),
+				temperature:parseFloat($('#temperature').val()),
+				top_p:parseFloat($('#top_p').val()),
+				top_k:parseFloat($('#top_k').val()),
 				skip_refine:$('#skip_refine').prop('checked')?1:0,
 				custom_voice:custom_voice?parseInt(custom_voice):0
 			};
 			
 
-let js=`# API调用示例代码
-
-import requests
-
-res=requests.post('http://${location.host}/tts',data=${JSON.stringify(data)})
-print(res.json())
-
-#ok 
-{code:0,msg:'ok',filename:filename.wav,url:http://${location.host}/static/wavs/filename.wav}
-
-#error 
-{code:1,msg:"error"}
-`
-$('#code').removeClass('d-none').html(`<pre><code>${js}</code></pre>`)
 
             $.ajax({
                 url: '/tts',
