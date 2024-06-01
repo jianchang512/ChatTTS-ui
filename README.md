@@ -1,7 +1,7 @@
 # ChatTTS webUI & API 
 
 
-这是一个用于 [ChatTTS](https://github.com/2noise/chattts) 的Web UI界面项目，提供网页中使用 ChatTTS 合成语音的功能，并支持api接口调用。[常见问题](faq.md)
+这是一个用于 [ChatTTS](https://github.com/2noise/chattts) 的Web UI界面项目，提供网页中使用 ChatTTS 合成语音的功能，并支持api接口调用。
 
 
 
@@ -85,11 +85,12 @@
 7. 执行 `python app.py` 启动，将自动打开浏览器窗口，默认地址 `http://127.0.0.1:9966`
 
 
-## 源码安装注意
+## 源码部署注意
 
 1. 源码部署启动后，会先从 modelscope下载模型，但modelscope缺少spk_stat.pt，会报错，请点击链接 https://huggingface.co/2Noise/ChatTTS/blob/main/asset/spk_stat.pt 下载 spk_stat.pt，将该文件复制到 `项目目录/models/pzc163/chatTTS/asset/ 文件夹内`
 
-2. 注意 modelscope 仅允许中国大陆ip下载模型，如果遇到 proxy 类错误，请关闭代理。如果你希望从 huggingface.co 下载模型，请打开 `app.py` 查看大约第50行-60行的代码注释。
+2. 注意 modelscope 仅允许中国大陆ip下载模型，如果遇到 proxy 类错误，请关闭代理。如果你希望从 huggingface.co 下载模型，请打开 `app.py` 查看大约第50行-60行的注释。
+
 
 [更多常见问题与报错解决方法](faq.md)
 
