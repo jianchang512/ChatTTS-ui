@@ -135,7 +135,7 @@ def tts():
         combined_wavdata = np.concatenate((combined_wavdata, wavdata[0]))
 
     sf.write(WAVS_DIR+'/'+filename, combined_wavdata, 24000)
-    return jsonify({"code": 0, "msg": "ok","filename":WAVS_DIR+'/'+filename,"url":f"http://{WEB_ADDRESS}/static/wavs/{filename}"})
+    return jsonify({"code": 0, "msg": "ok","filename":WAVS_DIR+'/'+filename,"url":f"http://{request.host}/static/wavs/{filename}"})
 
 
 
