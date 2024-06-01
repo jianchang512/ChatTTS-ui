@@ -43,6 +43,7 @@ load_dotenv()
 import hashlib,webbrowser
 from modelscope import snapshot_download
 import numpy as np
+import time
 
 
 # 读取 .env 变量
@@ -138,27 +139,78 @@ def tts():
     rand_spk = chat.sample_random_speaker()
     #rand_spk = torch.randn(768) * std + mean
 
+    audio_files = []
     md5_hash = hashlib.md5()
     md5_hash.update(f"{text}-{voice}-{skip_refine}-{prompt}".encode('utf-8'))
     datename=datetime.datetime.now().strftime('%Y%m%d-%H_%M_%S')
     filename = datename+'-'+md5_hash.hexdigest() + ".wav"
+
+    start_time = time.time()
+
     wavs = chat.infer([t for t in text.split("\n") if t.strip()], use_decoder=True, skip_refine_text=True if int(skip_refine)==1 else False,params_infer_code={
         'spk_emb': rand_spk,
         'temperature':temperature,
         'top_P':top_p,
         'top_K':top_k
     }, params_refine_text= {'prompt': prompt},do_text_normalization=False)
+
+    end_time = time.time()
+    inference_time = end_time - start_time
+    inference_time_rounded = round(inference_time, 2)
+    print(f"推理时长: {inference_time_rounded} 秒")
+
     # 初始化一个空的numpy数组用于之后的合并
     combined_wavdata = np.array([], dtype=wavs[0][0].dtype)  # 确保dtype与你的wav数据类型匹配
 
     for wavdata in wavs:
         combined_wavdata = np.concatenate((combined_wavdata, wavdata[0]))
 
+    sample_rate = 24000  # Assuming 24kHz sample rate
+    audio_duration = len(combined_wavdata) / sample_rate
+    audio_duration_rounded = round(audio_duration, 2)
+    app.logger.info(f"音频时长: {audio_duration_rounded} 秒")
+    print(f"音频时长: {audio_duration_rounded} 秒")
+
     sf.write(WAVS_DIR+'/'+filename, combined_wavdata, 24000)
 
-    return jsonify({"code": 0, "msg": "ok","filename":WAVS_DIR+'/'+filename,"url":f"http://{request.host}/static/wavs/{filename}"})
+    audio_files.append({
+        "filename": WAVS_DIR + '/' + filename,
+        "url": f"http://{request.host}/static/wavs/{filename}",
+        "inference_time": inference_time_rounded,
+        "audio_duration": audio_duration_rounded
+    })
+
+    return jsonify({"code": 0, "msg": "ok", "audio_files": audio_files})
+
+def ClearWav(directory):
+    # 获取../static/wavs目录中的所有文件和目录
+    files = [f for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f))]
+
+    if not files:
+        return False, "wavs目录内无wav文件"
+
+    for filename in os.listdir(directory):
+        file_path = os.path.join(directory, filename)
+        try:
+            if os.path.isfile(file_path) or os.path.islink(file_path):
+                os.unlink(file_path)
+                print(f"已删除文件: {file_path}")
+            elif os.path.isdir(file_path):
+                print(f"跳过文件夹: {file_path}")
+        except Exception as e:
+            print(f"文件删除错误 {file_path}, 报错信息: {e}")
+            return False, str(e)
+    return True, "所有wav文件已被删除."
 
 
+@app.route('/clear_wavs', methods=['POST'])
+def clear_wavs():
+    dir_path = 'static/wavs'  # wav音频文件存储目录
+    success, message = ClearWav(dir_path)
+    if success:
+        return jsonify({"code": 0, "msg": message})
+    else:
+        return jsonify({"code": 1, "msg": message})
 
 try:
     host = WEB_ADDRESS.split(':')
