@@ -17,3 +17,4 @@ __pycache__
 pack.bat
 gitcmd.bat
 logs
+poetry.lock
