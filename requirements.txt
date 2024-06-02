@@ -10,3 +10,4 @@ tokenizers
 transformers
 vector-quantize-pytorch
 vocos
+waitress
