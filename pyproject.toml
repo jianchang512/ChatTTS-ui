@@ -20,15 +20,21 @@ langsegment = "^0.3.3"
 omegaconf = "^2.3.0"
 tokenizers = "^0.19.1"
 transformers = "^4.41.2"
-torch = { version = "^2.3.0+cu118", source = "pytorch-gpu-src" }
-torchaudio = { version = "^2.3.0+cu118", source = "pytorch-gpu-src" }
+torch = [
+    { version = "^2.3.0+cu118", source = "pytorch-gpu-src" },
+    { platform = "darwin", version = "^2" }
+]
+torchaudio = [
+    { version = "^2.3.0+cu118", source = "pytorch-gpu-src" },
+    { platform = "darwin", version = "^2" }
+]
 vocos = "^0.1.0"
 vector-quantize-pytorch = "^1.14.24"
 numpy = { version = "^1.26.4" }
 
 # Optional dependencies that are not downloaded by default
 fastapi = { version = "*", extras = ["all"], optional = true }
-pydantic = { version = "^2", optional = true}
+pydantic = { version = "^2", optional = true }
 
 [[tool.poetry.source]]
 name = "pytorch-gpu-src"
@@ -50,6 +56,16 @@ pytest-asyncio = "*"
 line-length = 100
 target-version = ["py310", "py311", "py312"]
 skip-magic-trailing-comma = true
+exclude = '''
+/(
+    ChatTTS
+    | .*
+    | build
+    | dist
+    | migrations
+    | __pycache__
+)/
+'''
 
 [tool.pytest.ini_options]
 # https://docs.pytest.org/en/stable/reference/reference.html#configuration-options
