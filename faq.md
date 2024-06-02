@@ -65,7 +65,11 @@
 答：默认会从 modelscope 下载模型，但 modelscope 仅允许中国大陆ip下载，如果遇到 proxy 类错误，请关闭代理。如果你希望从 huggingface.co 下载模型，请打开 `app.py` 查看大约第50行-60行的代码注释。
 
 
-**11.** ChatTTS原始项目新版本有兼容问题，可能会报错 “报错 Normalizer pynini WeTextProcessing nemo_text_processing ”
+**11.** 中英分词是怎么回事
+
+答：如果选中中英分词，那么将会把文字中的中文和英文分离出来单独合成，同时将对应的数字 转为相应语言的文字，比如 中文下123转为一二三，英文下123转为 one two three
+
+**12.** ChatTTS原始项目新版本有兼容问题，可能会报错 “报错 Normalizer pynini WeTextProcessing nemo_text_processing ”
 
 解决方法：
 新版使用了 nemo_text_processing  和  pynini 来处理中文，但遗憾的是，pynini压根无法在windows平台安装和使用，要使用，也只能安装在WSL子系统上。
