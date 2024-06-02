@@ -127,7 +127,7 @@ def num2text(text,lang="zh"):
         point='点'
     # 取出数字 number_list= [('1000200030004000.123', '1000200030004000', '123'), ('23425', '23425', '')]
     number_list=re.findall('((\d+)(?:\.(\d+))?)',text)
-    print(number_list)
+    #print(number_list)
     if len(number_list)>0:            
         #dc= ('1000200030004000.123', '1000200030004000', '123')
         for m,dc in enumerate(number_list):
@@ -158,6 +158,7 @@ def split_text(text_list):
                 result[-1]+=t['text']
             else:
                 result.append(num2text(t['text'],t['lang']))
+    print(f'{result=}')
     return result
 
 
