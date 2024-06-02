@@ -16,16 +16,59 @@
 
 https://github.com/jianchang512/ChatTTS-ui/assets/3378335/03cf1c0f-0245-44b5-8007-370d9db2bda8
 
-
-
-
-
-
-
 ## Windows预打包版
 
 1. 从 [Releases](https://github.com/jianchang512/chatTTS-ui/releases)中下载压缩包，解压后双击 app.exe 即可使用
 
+## Linux 下容器部署
+
+### 安装
+
+1. 拉取项目仓库
+
+   在任意路径下克隆项目，例如：
+
+   ```bash
+   git clone https://github.com/jianchang512/ChatTTS-ui.git chat-tts-ui
+   ```
+
+2. 启动 Runner
+
+   进入到项目目录：
+
+   ```bash
+   cd chat-tts-ui
+   ```
+
+   启动容器并查看初始化日志：
+
+   ```bash
+   docker compose up -d
+   docker compose logs -f --no-log-prefix
+
+3. 访问 ChatTTS WebUI
+
+   `启动:['0.0.0.0', '9966']`，也即，访问部署设备的 `IP:9966` 即可，例如：
+
+   - 本机：`http://127.0.0.1:9966`
+   - 服务器: `http://192.168.1.100:9966`
+
+### 更新
+
+1. Get the latest code from the main branch:
+
+   ```bash
+   git checkout main
+   git pull origin main
+   ```
+
+2. Go to the next step and update to the latest image:
+
+   ```bash
+   docker compose down
+   docker compose up -d --build
+   docker compose logs -f --no-log-prefix
+   ```
 
 ## Linux 下源码部署
 
@@ -45,7 +88,7 @@ https://github.com/jianchang512/ChatTTS-ui/assets/3378335/03cf1c0f-0245-44b5-800
 	```
 	另需安装 CUDA11.8+ ToolKit，请自行搜索安装方法 或参考 https://juejin.cn/post/7318704408727519270
 	
-7. 执行 `python3 app.py` 启动，将自动打开浏览器窗口，默认地址 `http://127.0.0.1:9966`
+7. 执行 `python3 app.py` 启动，将自动打开浏览器窗口，默认地址 `http://127.0.0.1:9966` (注意：默认从 modelscope 魔塔下载模型，不可使用代理下载，请关闭代理)
 
 
 ## MacOS 下源码部署
@@ -55,11 +98,11 @@ https://github.com/jianchang512/ChatTTS-ui/assets/3378335/03cf1c0f-0245-44b5-800
 
     ```
     export PATH="/usr/local/opt/python@3.10/bin:$PATH"
-
+	
     source ~/.bash_profile 
 	
 	source ~/.zshrc
-
+	
     ```
 	
 2. 创建空目录 `/data/chattts` 执行命令 `cd /data/chattts &&  git clone https://github.com/jianchang512/chatTTS-ui .`
@@ -67,8 +110,7 @@ https://github.com/jianchang512/ChatTTS-ui/assets/3378335/03cf1c0f-0245-44b5-800
 4. 激活虚拟环境 `source ./venv/bin/activate`
 5. 安装依赖 `pip3 install -r requirements.txt`
 6. 安装torch `pip3 install torch torchaudio`
-7. 执行 `python3 app.py` 启动，将自动打开浏览器窗口，默认地址 `http://127.0.0.1:9966`
-8. Macos下可能会到一些问题，请查看 [常见问题与报错解决方法](faq.md)
+7. 执行 `python3 app.py` 启动，将自动打开浏览器窗口，默认地址 `http://127.0.0.1:9966`  (注意：默认从 modelscope 魔塔下载模型，不可使用代理下载，请关闭代理)
 
 
 ## Windows源码部署
@@ -87,7 +129,7 @@ https://github.com/jianchang512/ChatTTS-ui/assets/3378335/03cf1c0f-0245-44b5-800
 	
 	另需安装 CUDA11.8+ ToolKit，请自行搜索安装方法或参考 https://juejin.cn/post/7318704408727519270
 	
-7. 执行 `python app.py` 启动，将自动打开浏览器窗口，默认地址 `http://127.0.0.1:9966`
+7. 执行 `python app.py` 启动，将自动打开浏览器窗口，默认地址 `http://127.0.0.1:9966`  (注意：默认从 modelscope 魔塔下载模型，不可使用代理下载，请关闭代理)
 
 
 ## 源码部署注意
@@ -192,4 +234,4 @@ print(res.json())
 2. 测试无问题后，在主界面中选择`ChatTTS`
 
 ![image](https://github.com/jianchang512/ChatTTS-ui/assets/3378335/7118325f-2b9a-46ce-a584-1d5c6dc8e2da)
-   
+
