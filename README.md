@@ -18,7 +18,7 @@
 https://github.com/jianchang512/ChatTTS-ui/assets/3378335/03cf1c0f-0245-44b5-8007-370d9db2bda8
 
 
-
+中英数字混杂效果
 https://github.com/jianchang512/ChatTTS-ui/assets/3378335/43370012-68c3-495f-a1be-c58035cbe8dc
 
 
