@@ -9,7 +9,7 @@ torch._dynamo.config.cache_size_limit = 64
 torch._dynamo.config.suppress_errors = True
 torch.set_float32_matmul_precision('high')
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
-VERSION='0.8'
+VERSION='0.81'
 
 def get_executable_path():
     # 这个函数会返回可执行文件所在的目录
@@ -46,8 +46,8 @@ import hashlib,webbrowser
 from modelscope import snapshot_download
 import numpy as np
 import time
-import LangSegment
-LangSegment.setfilters(["zh","en","ja"])
+import utils
+import threading
 
 # 读取 .env 变量
 WEB_ADDRESS = os.getenv('WEB_ADDRESS', '127.0.0.1:9966')
@@ -102,27 +102,6 @@ def static_files(filename):
 def index():
     return render_template("index.html",weburl=WEB_ADDRESS,version=VERSION)
 
-# 将数字转为文字
-def num2text(t,lang="zh"):
-    if lang=='zh':
-        return t.replace('1','一').replace('2','二').replace('3','三').replace('4','四').replace('5','五').replace('6','六').replace('7','七').replace('8','八').replace('9','九').replace('0','零')
-    return t.replace('1',' one ').replace('2',' two ').replace('3',' three ').replace('4',' four ').replace('5',' five ').replace('6',' six ').replace('7','seven').replace('8',' eight ').replace('9',' nine ').replace('0',' zero ')
-
-
-# 切分中英
-def split_text(text_list):
-    result=[]
-    for text in text_list:
-        text=text.replace('[uv_break]','<en>[uv_break]</en>').replace('[laugh]','<en>[laugh]</en>')
-        langlist=LangSegment.getTexts(text)
-        length=len(langlist)
-        for i,t in enumerate(langlist):
-            # 当前是控制符，则插入到前一个            
-            if len(result)>0 and re.match(r'^[\s\,\.]*?\[(uv_break|laugh)\][\s\,\.]*$',t['text']) is not None:
-                result[-1]+=t['text']
-            else:
-                result.append(num2text(t['text'],t['lang']))
-    return result
 
 # 根据文本返回tts结果，返回 filename=文件名 url=可下载地址
 # 请求端根据需要自行选择使用哪个
@@ -132,6 +111,7 @@ def split_text(text_list):
 # voice：音色
 # custom_voice：自定义音色值
 # skip_refine: 1=跳过refine_text阶段，0=不跳过
+# is_split: 1=启用中英分词，同时将数字转为对应语言发音，0=不启用
 # temperature
 # top_p
 # top_k
@@ -176,8 +156,8 @@ def tts():
     
     # 中英按语言分行
     text_list=[t.strip() for t in text.split("\n") if t.strip()]
-    new_text=text_list if is_split==0 else split_text(text_list)
-    print(f'{new_text=}')
+    new_text=text_list if is_split==0 else utils.split_text(text_list)
+
     wavs = chat.infer(new_text, use_decoder=True, skip_refine_text=True if int(skip_refine)==1 else False,params_infer_code={
         'spk_emb': rand_spk,
         'temperature':temperature,
@@ -217,31 +197,13 @@ def tts():
 
     return jsonify(result_dict)
 
-def ClearWav(directory):
-    # 获取../static/wavs目录中的所有文件和目录
-    files = [f for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f))]
 
-    if not files:
-        return False, "wavs目录内无wav文件"
-
-    for filename in os.listdir(directory):
-        file_path = os.path.join(directory, filename)
-        try:
-            if os.path.isfile(file_path) or os.path.islink(file_path):
-                os.unlink(file_path)
-                print(f"已删除文件: {file_path}")
-            elif os.path.isdir(file_path):
-                print(f"跳过文件夹: {file_path}")
-        except Exception as e:
-            print(f"文件删除错误 {file_path}, 报错信息: {e}")
-            return False, str(e)
-    return True, "所有wav文件已被删除."
 
 
 @app.route('/clear_wavs', methods=['POST'])
 def clear_wavs():
     dir_path = 'static/wavs'  # wav音频文件存储目录
-    success, message = ClearWav(dir_path)
+    success, message = utils.ClearWav(dir_path)
     if success:
         return jsonify({"code": 0, "msg": message})
     else:
@@ -249,9 +211,9 @@ def clear_wavs():
 
 try:
     host = WEB_ADDRESS.split(':')
-    print(f'启动:{host}')
-    webbrowser.open(f'http://{WEB_ADDRESS}')
+    print(f'启动:{WEB_ADDRESS}')
+    threading.Thread(target=utils.openweb,args=(f'http://{WEB_ADDRESS}',)).start()
     serve(app,host=host[0], port=int(host[1]))
-except Exception:
-    pass
+except Exception as e:
+    print(e)
 

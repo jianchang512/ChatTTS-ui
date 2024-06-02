@@ -69,7 +69,12 @@
 
 答：如果选中中英分词，那么将会把文字中的中文和英文分离出来单独合成，同时将对应的数字 转为相应语言的文字，比如 中文下123转为一二三，英文下123转为 one two three
 
-**12.** ChatTTS原始项目新版本有兼容问题，可能会报错 “报错 Normalizer pynini WeTextProcessing nemo_text_processing ”
+
+**12.** Runtime Error:cannot find a working triton installation 
+
+打开 .env  将 compile=true 改为 compile=false
+
+**13.** ChatTTS原始项目新版本有兼容问题，可能会报错 “报错 Normalizer pynini WeTextProcessing nemo_text_processing ”
 
 解决方法：
 新版使用了 nemo_text_processing  和  pynini 来处理中文，但遗憾的是，pynini压根无法在windows平台安装和使用，要使用，也只能安装在WSL子系统上。
