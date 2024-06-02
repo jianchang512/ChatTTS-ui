@@ -1,11 +1,15 @@
-import os
-import sys,re
-from pathlib import Path
-
-
 import LangSegment
+import os
+import time
+import re
+import webbrowser
 LangSegment.setfilters(["zh","en","ja"])
 
+def openweb(url):
+    time.sleep(3)
+    webbrowser.open(url)
+
+# 数字转为中文读法
 def num_to_chinese(num):
     num_str = str(num)
     chinese_digits = "零一二三四五六七八九"
@@ -50,6 +54,7 @@ def num_to_chinese(num):
     
     return result
 
+# 数字转为英文读法
 def num_to_english(num):
     
     num_str = str(num)
@@ -113,6 +118,7 @@ def num_to_english(num):
     return result.capitalize()
 
 
+# 数字转为中英文读法
 def num2text(text,lang="zh"):
     numtext=[' zero ',' one ',' two ',' three ',' four ',' five ',' six ',' seven ',' eight ',' nine ']
     point=' point '
@@ -138,9 +144,8 @@ def num2text(text,lang="zh"):
     return text.replace('1',' one ').replace('2',' two ').replace('3',' three ').replace('4',' four ').replace('5',' five ').replace('6',' six ').replace('7','seven').replace('8',' eight ').replace('9',' nine ').replace('0',' zero ')
 
 
-print(num2text("asdgas阿萨德噶阿萨德刚12314214.343",'en'))
-# 按行区分中英
-# 按行区分中英
+
+# 切分中英文并转换数字
 def split_text(text_list):
     result=[]
     for text in text_list:
@@ -148,8 +153,7 @@ def split_text(text_list):
         langlist=LangSegment.getTexts(text)
         length=len(langlist)
         for i,t in enumerate(langlist):
-            # 当前是控制符，则插入到前一个           
-            
+            # 当前是控制符，则插入到前一个            
             if len(result)>0 and re.match(r'^[\s\,\.]*?\[(uv_break|laugh)\][\s\,\.]*$',t['text']) is not None:
                 result[-1]+=t['text']
             else:
@@ -157,84 +161,23 @@ def split_text(text_list):
     return result
 
 
-#print(split_text(["你好啊,各位123456,[uv_break]我的 english 123456, 朋友[laugh],hello my world","[laugh]你是我的enlish朋友呀,[uv_break],难道不是吗？"]))
 
+# 获取../static/wavs目录中的所有文件和目录并清理wav
+def ClearWav(directory):
+    files = [f for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f))]
 
-exit()
+    if not files:
+        return False, "wavs目录内无wav文件"
 
-import torch
-import torch._dynamo
-torch._dynamo.config.suppress_errors = True
-torch._dynamo.config.cache_size_limit = 64
-torch._dynamo.config.suppress_errors = True
-torch.set_float32_matmul_precision('high')
-os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
-VERSION='0.6'
-
-def get_executable_path():
-    # 这个函数会返回可执行文件所在的目录
-    if getattr(sys, 'frozen', False):
-        # 如果程序是被“冻结”打包的，使用这个路径
-        return Path(sys.executable).parent.as_posix()
-    else:
-        return Path.cwd().as_posix()
-
-ROOT_DIR=get_executable_path()
-
-MODEL_DIR_PATH=Path(ROOT_DIR+"/models")
-MODEL_DIR_PATH.mkdir(parents=True, exist_ok=True)
-MODEL_DIR=MODEL_DIR_PATH.as_posix()
-
-WAVS_DIR_PATH=Path(ROOT_DIR+"/static/wavs")
-WAVS_DIR_PATH.mkdir(parents=True, exist_ok=True)
-WAVS_DIR=WAVS_DIR_PATH.as_posix()
-
-LOGS_DIR_PATH=Path(ROOT_DIR+"/logs")
-LOGS_DIR_PATH.mkdir(parents=True, exist_ok=True)
-LOGS_DIR=LOGS_DIR_PATH.as_posix()
-
-import soundfile as sf
-import ChatTTS
-import datetime
-from dotenv import load_dotenv
-import logging
-from logging.handlers import RotatingFileHandler
-load_dotenv()
-
-
-import hashlib,webbrowser
-from modelscope import snapshot_download
-import numpy as np
-import time
-# 读取 .env 变量
-WEB_ADDRESS = os.getenv('WEB_ADDRESS', '127.0.0.1:9966')
-
-# 默认从 modelscope 下载模型,如果想从huggingface下载模型，请将以下3行注释掉
-CHATTTS_DIR = snapshot_download('pzc163/chatTTS',cache_dir=MODEL_DIR)
-chat = ChatTTS.Chat()
-chat.load_models(source="local",local_path=CHATTTS_DIR,compile=True if os.getenv('compile','true').lower()!='false' else False)
-
-# 如果希望从 huggingface.co下载模型，将以下注释删掉。将上方3行内容注释掉
-#os.environ['HF_HUB_CACHE']=MODEL_DIR
-#os.environ['HF_ASSETS_CACHE']=MODEL_DIR
-#chat = ChatTTS.Chat()
-#chat.load_models(compile=True if os.getenv('compile','true').lower()!='false' else False)
-
-
-
-
-text="你好啊朋友们,听说今天是个好日子,难道不是吗？"
-prompt='[oral_2][laugh_0][break_0]'
-#
-torch.manual_seed(3333)
-rand_spk = chat.sample_random_speaker()
-
-
-wavs = chat.infer([text], use_decoder=True,params_infer_code={'spk_emb': rand_spk,'prompt':'[speed_1]'} ,skip_refine_text=True,params_refine_text= {'prompt': prompt})
-# 初始化一个空的numpy数组用于之后的合并
-combined_wavdata = np.array([], dtype=wavs[0][0].dtype)  # 确保dtype与你的wav数据类型匹配
-
-for wavdata in wavs:
-    combined_wavdata = np.concatenate((combined_wavdata, wavdata[0]))
-sf.write('test.wav', combined_wavdata, 24000)
-
+    for filename in os.listdir(directory):
+        file_path = os.path.join(directory, filename)
+        try:
+            if os.path.isfile(file_path) or os.path.islink(file_path):
+                os.unlink(file_path)
+                print(f"已删除文件: {file_path}")
+            elif os.path.isdir(file_path):
+                print(f"跳过文件夹: {file_path}")
+        except Exception as e:
+            print(f"文件删除错误 {file_path}, 报错信息: {e}")
+            return False, str(e)
+    return True, "所有wav文件已被删除."
