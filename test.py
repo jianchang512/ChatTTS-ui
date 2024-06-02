@@ -39,6 +39,8 @@ from dotenv import load_dotenv
 import logging
 from logging.handlers import RotatingFileHandler
 load_dotenv()
+
+
 import hashlib,webbrowser
 from modelscope import snapshot_download
 import numpy as np
@@ -49,13 +51,13 @@ WEB_ADDRESS = os.getenv('WEB_ADDRESS', '127.0.0.1:9966')
 # 默认从 modelscope 下载模型,如果想从huggingface下载模型，请将以下3行注释掉
 CHATTTS_DIR = snapshot_download('pzc163/chatTTS',cache_dir=MODEL_DIR)
 chat = ChatTTS.Chat()
-chat.load_models(source="local",local_path=CHATTTS_DIR)
+chat.load_models(source="local",local_path=CHATTTS_DIR,compile=True if os.getenv('compile','true').lower()!='false' else False)
 
 # 如果希望从 huggingface.co下载模型，将以下注释删掉。将上方3行内容注释掉
 #os.environ['HF_HUB_CACHE']=MODEL_DIR
 #os.environ['HF_ASSETS_CACHE']=MODEL_DIR
 #chat = ChatTTS.Chat()
-#chat.load_models()
+#chat.load_models(compile=True if os.getenv('compile','true').lower()!='false' else False)
 
 
 
