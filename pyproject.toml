@@ -26,7 +26,7 @@ vocos = "^0.1.0"
 vector-quantize-pytorch = "^1.14.24"
 numpy = { version = "^1.26.4" }
 
-# Optional
+# Optional dependencies that are not downloaded by default
 fastapi = { version = "*", extras = ["all"], optional = true }
 pydantic = { version = "^2", optional = true}
 
