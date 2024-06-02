@@ -134,7 +134,7 @@ def num2text(text,lang="zh"):
             if len(dc[1])>16:
                 continue
             int_text=num_to_chinese(dc[1]) if lang=='zh' else num_to_english(dc[1])
-            if len(dc)==3:
+            if len(dc)==3 and dc[2]:
                 int_text+=point+"".join([numtext[int(i)] for i in dc[2]])
             
             text=text.replace(dc[0],int_text)
