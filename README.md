@@ -88,7 +88,7 @@ https://github.com/jianchang512/ChatTTS-ui/assets/3378335/03cf1c0f-0245-44b5-800
 	```
 	另需安装 CUDA11.8+ ToolKit，请自行搜索安装方法 或参考 https://juejin.cn/post/7318704408727519270
 	
-7. 执行 `python3 app.py` 启动，将自动打开浏览器窗口，默认地址 `http://127.0.0.1:9966`
+7. 执行 `python3 app.py` 启动，将自动打开浏览器窗口，默认地址 `http://127.0.0.1:9966` (注意：默认从 modelscope 魔塔下载模型，不可使用代理下载，请关闭代理)
 
 
 ## MacOS 下源码部署
@@ -110,8 +110,7 @@ https://github.com/jianchang512/ChatTTS-ui/assets/3378335/03cf1c0f-0245-44b5-800
 4. 激活虚拟环境 `source ./venv/bin/activate`
 5. 安装依赖 `pip3 install -r requirements.txt`
 6. 安装torch `pip3 install torch torchaudio`
-7. 执行 `python3 app.py` 启动，将自动打开浏览器窗口，默认地址 `http://127.0.0.1:9966`
-8. Macos下可能会到一些问题，请查看 [常见问题与报错解决方法](faq.md)
+7. 执行 `python3 app.py` 启动，将自动打开浏览器窗口，默认地址 `http://127.0.0.1:9966`  (注意：默认从 modelscope 魔塔下载模型，不可使用代理下载，请关闭代理)
 
 
 ## Windows源码部署
@@ -130,7 +129,7 @@ https://github.com/jianchang512/ChatTTS-ui/assets/3378335/03cf1c0f-0245-44b5-800
 	
 	另需安装 CUDA11.8+ ToolKit，请自行搜索安装方法或参考 https://juejin.cn/post/7318704408727519270
 	
-7. 执行 `python app.py` 启动，将自动打开浏览器窗口，默认地址 `http://127.0.0.1:9966`
+7. 执行 `python app.py` 启动，将自动打开浏览器窗口，默认地址 `http://127.0.0.1:9966`  (注意：默认从 modelscope 魔塔下载模型，不可使用代理下载，请关闭代理)
 
 
 ## 源码部署注意
