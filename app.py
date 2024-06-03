@@ -38,10 +38,14 @@ chat = ChatTTS.Chat()
 chat.load_models(source="local",local_path=CHATTTS_DIR, compile=True if os.getenv('compile','true').lower()!='false' else False)
 
 # 如果希望从 huggingface.co下载模型，将以下注释删掉。将上方3行内容注释掉
-#os.environ['HF_HUB_CACHE']=MODEL_DIR
-#os.environ['HF_ASSETS_CACHE']=MODEL_DIR
-#chat = ChatTTS.Chat()
-#chat.load_models(compile=True if os.getenv('compile','true').lower()!='false' else False)
+
+# import huggingface_hub
+# os.environ['HF_HUB_CACHE']=MODEL_DIR
+# os.environ['HF_ASSETS_CACHE']=MODEL_DIR
+# CHATTTS_DIR = huggingface_hub.snapshot_download(cache_dir=MODEL_DIR,repo_id="2Noise/ChatTTS", allow_patterns=["*.pt", "*.yaml"])
+# chat = ChatTTS.Chat()
+# chat.load_models(source="local",local_path=CHATTTS_DIR, compile=True if os.getenv('compile','true').lower()!='false' else False)
+
 
 
 
