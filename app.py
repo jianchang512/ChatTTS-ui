@@ -19,13 +19,13 @@ import logging
 from logging.handlers import RotatingFileHandler
 from waitress import serve
 load_dotenv()
-import hashlib,webbrowser
+from random import random
 from modelscope import snapshot_download
 import numpy as np
 import time
 import threading
-from cfg import WEB_ADDRESS, SPEAKER_DIR, LOGS_DIR, WAVS_DIR, MODEL_DIR, ROOT_DIR,VERSION
-import utils
+from uilib.cfg import WEB_ADDRESS, SPEAKER_DIR, LOGS_DIR, WAVS_DIR, MODEL_DIR, ROOT_DIR,VERSION
+from uilib import utils
 
 
 
@@ -134,18 +134,18 @@ def tts():
     # 固定音色
     rand_spk=utils.load_speaker(voice)
     if rand_spk is None:    
+        print(f'根据seed={voice}获取随机音色')
         torch.manual_seed(voice)
         std, mean = torch.load(f'{CHATTTS_DIR}/asset/spk_stat.pt').chunk(2)
         #rand_spk = chat.sample_random_speaker()        
         rand_spk = torch.randn(768) * std + mean
         # 保存音色
         utils.save_speaker(voice,rand_spk)
+    else:
+        print(f'固定音色 seed={voice}')
 
     audio_files = []
-    md5_hash = hashlib.md5()
-    md5_hash.update(f"{text}-{voice}-{skip_refine}-{prompt}".encode('utf-8'))
-    datename=datetime.datetime.now().strftime('%Y%m%d-%H_%M_%S')
-    filename = datename+'-'+md5_hash.hexdigest()[:8] + ".wav"
+    
 
     start_time = time.time()
     
@@ -176,7 +176,9 @@ def tts():
     audio_duration = len(combined_wavdata) / sample_rate
     audio_duration_rounded = round(audio_duration, 2)
     print(f"音频时长: {audio_duration_rounded} 秒")
-
+    
+    
+    filename = datetime.datetime.now().strftime('%H%M%S_')+f"use{inference_time_rounded}s-audio{audio_duration_rounded}s-seed{voice}-te{temperature}-tp{top_p}-tk{top_k}-textlen{len(text)}-{str(random())[2:7]}" + ".wav"
     sf.write(WAVS_DIR+'/'+filename, combined_wavdata, 24000)
 
     audio_files.append({

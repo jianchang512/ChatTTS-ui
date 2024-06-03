@@ -32,6 +32,9 @@
       background-color: #ffc107;
       border-color: #ffc107;
     }
+	.font12{
+		font-size:12px
+	}
 	
 	</style>
 </head>
@@ -52,17 +55,17 @@
 				<div class="col align-items-center input-group">
 					<span class="input-group-text">选择音色</span>
 					<select id="voice" class="form-control">
-						<option value="1111">男1111</option>
-						<option value="2222">男2222</option>
-						<option value="4444">男4444</option>
-						<option value="6653">男6653</option>
-						<option value="7869">男7869</option>
-						<option value="9999">男9999</option>
-						<option value="3333">女3333</option>
-						<option value="4099">女4099</option>
-						<option value="5099">女5099</option>
-						<option value="5555">女5555</option>
-						<option value="8888">女8888</option>
+						<option value="2222">男(2222)</option>
+						<option value="4444">男(4444)</option>
+						<option value="6653">男(6653)</option>
+						<option value="7869">男(7869)</option>
+						<option value="9999">男(9999)</option>
+						<option value="1111">女(1111)</option>
+						<option value="3333">女(3333)</option>
+						<option value="4099">女(4099)</option>
+						<option value="5099">女(5099)</option>
+						<option value="5555">女(5555)</option>
+						<option value="8888">8888</option>
 						<option value="6666">6666</option>
 						<option value="7777">7777</option>
 					</select>
@@ -125,7 +128,7 @@
 			<button id="upload-btn" class="btn btn-secondary">导入txt
 				<input type="file" id="file-input" accept=".txt"  >
 			</button>
-            <button id="clear-btn" class="btn btn-warning">清理所有wav文件</button>
+            <button id="clear-btn" class="btn btn-warning text-light" data-toggle="tooltip" title="删除所有已生成的wav文件">清理所有wav文件</button>
         </div>
         <div class="col-12  mt-4" >
 			<div class="row" id="audio-container"></div>
@@ -198,13 +201,21 @@ print(res.json())
 {code:1, msg:"error"}
 `;
 				let n=$('#audio-container > div').length+1;
-                $('#audio-container').append(`
+                $('#audio-container').prepend(`
                   <div class="col-12 mb-2 pb-2 border-bottom">
-                    <div class="fs-6 text-secondary">[${n}] ${filename}</div>
-                    <audio controls src="${audio.url}"></audio>
-                    <div>推理时长: ${audio.inference_time} 秒</div>
-                    <div>音频时长: ${audio.audio_duration} 秒</div>
-                    <button class="btn btn-info mt-2 show-js-btn" data-js-code="${encodeURIComponent(jsCode)}">显示API调用</button>
+                    <div>						
+						[${n}] ${filename} 
+					</div>
+					<div class="d-flex align-items-center my-1">
+						<a title="移除显示，不删除wav文件" href="javascripts:;" onclick="$(this).parent().parent().remove()" class="btn btn-close font12 me-2"></a>
+						<audio controls src="${audio.url}"></audio>
+					</div>
+                    <div class="d-flex align-items-center text-secondary fs-6">
+						<button class="btn btn-info text-light me-2 show-js-btn" data-js-code="${encodeURIComponent(jsCode)}">显示API调用</button>
+						<span>
+						推理时长: ${audio.inference_time} 秒,音频时长: ${audio.audio_duration} 秒
+						</span>
+					</div>
                     <div class="m-2 bg-black text-white d-none code-container p-1"></div>
                   </div>
                 `);
@@ -229,7 +240,7 @@ print(res.json())
   });
 
   $(document).on('click', '.show-js-btn', function() {
-    let codeContainer = $(this).next('.code-container');
+    let codeContainer = $(this).parent().next('.code-container');
     codeContainer.toggleClass('d-none');
     if (!codeContainer.hasClass('d-none')) {
       codeContainer.html(`<pre><code>${decodeURIComponent($(this).data('js-code'))}</code></pre>`);
@@ -263,6 +274,7 @@ print(res.json())
         type: 'POST',
         success: function(response) {
           if (response.code === 0) {
+		    $('#audio-container').html('')
             layer.alert('清理成功', {title: false});
           } else {
             layer.alert('清理失败: ' + response.msg, {title: false});
