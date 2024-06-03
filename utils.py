@@ -1,9 +1,10 @@
-import LangSegment
 import os
 import time
 import re
 import webbrowser
-LangSegment.setfilters(["zh","en","ja"])
+from pathlib import Path
+import pandas as pd
+from cfg import SPEAKER_DIR
 
 def openweb(url):
     time.sleep(3)
@@ -118,29 +119,39 @@ def num_to_english(num):
     return result.capitalize()
 
 
+def get_lang(text):
+    # 定义中文标点符号的模式
+    chinese_punctuation = "[。？！，、；：‘’“”（）《》【】…—\u3000]"
+    # 使用正则表达式替换所有中文标点为""
+    cleaned_text = re.sub(chinese_punctuation, "", text)
+    # 使用正则表达式来匹配中文字符范围
+    return "zh" if re.search('[\u4e00-\u9fff]', text) is not None else "en"
+
+
 # 数字转为中英文读法
 def num2text(text):
-    numtext=['零','一','二','三','四','五','六','七','八','九']
-    point='点'
-    lang='zh'
+    lang=get_lang(text)
+    if lang=='zh':
+        numtext=['零','一','二','三','四','五','六','七','八','九']
+        point='点'
     # 英文字符长度超过一半
-    if len(" ".join(re.findall(r'\b([a-zA-Z]{3,})\b',text,re.I)))>=len(text)/2:
-        lang='en'
+    else:
         numtext=[' zero ',' one ',' two ',' three ',' four ',' five ',' six ',' seven ',' eight ',' nine ']
         point=' point '
         
     # 取出数字 number_list= [('1000200030004000.123', '1000200030004000', '123'), ('23425', '23425', '')]
-    number_list=re.findall('((\d+)(?:\.(\d+))?)',text)
+    number_list=re.findall('((\d+)(?:\.(\d+))?%?)',text)
     #print(number_list)
     if len(number_list)>0:            
-        #dc= ('1000200030004000.123', '1000200030004000', '123')
+        #dc= ('1000200030004000.123', '1000200030004000', '123','')
         for m,dc in enumerate(number_list):
             if len(dc[1])>16:
                 continue
             int_text=num_to_chinese(dc[1]) if lang=='zh' else num_to_english(dc[1])
-            if len(dc)==3 and dc[2]:
+            if len(dc)>2 and dc[2]:
                 int_text+=point+"".join([numtext[int(i)] for i in dc[2]])
-            
+            if dc[0][-1]=='%':
+                int_text=('百分之' if lang=='zh'  else ' the pronunciation of ') + int_text
             text=text.replace(dc[0],int_text)
     if lang=='zh':
         return text.replace('1','一').replace('2','二').replace('3','三').replace('4','四').replace('5','五').replace('6','六').replace('7','七').replace('8','八').replace('9','九').replace('0','零')
@@ -153,7 +164,11 @@ def num2text(text):
 def split_text(text_list):
     result=[]
     for i,text in enumerate(text_list):
-        text_list[i]=num2text(text)
+        tmp=num2text(text)
+        if len(tmp)>200:
+            result=result+split_text_by_punctuation(tmp)
+        else:
+            result.append(tmp)
         '''
         continue
         text=text.replace('[uv_break]','<en>[uv_break]</en>').replace('[laugh]','<en>[laugh]</en>')
@@ -166,9 +181,36 @@ def split_text(text_list):
             else:
                 result.append(num2text(t['text'],t['lang']))
         '''
-    print(f'{text_list=}')
-    return text_list
+    print(f'{result=},len={len(result)}')
+    return result
 
+
+def split_text_by_punctuation(text):
+    # 定义长度限制
+    min_length = 150
+    punctuation_marks = "。？！，、；：“”‘’《》「」『』（）【】…—"
+    english_punctuation = ".?!,:;\"'()[]{}…"
+    
+    # 结果列表
+    result = []
+    # 起始位置
+    pos = 0
+    
+    # 遍历文本中的每个字符
+    for i, char in enumerate(text):
+        if char in punctuation_marks or char in english_punctuation:
+            # 当遇到标点时，判断当前分段长度是否超过120
+            if i - pos > min_length:
+                # 如果长度超过120，将当前分段添加到结果列表中
+                result.append(text[pos:i+1])
+                # 更新起始位置到当前标点的下一个字符
+                pos = i+1
+    
+    # 如果剩余文本长度超过120或没有更多标点符号可以进行分割，将剩余的文本作为一个分段添加到结果列表
+    if len(text) - pos > min_length:
+        result.append(text[pos:])
+    
+    return result
 
 
 # 获取../static/wavs目录中的所有文件和目录并清理wav
@@ -190,3 +232,29 @@ def ClearWav(directory):
             print(f"文件删除错误 {file_path}, 报错信息: {e}")
             return False, str(e)
     return True, "所有wav文件已被删除."
+    
+# 保存音色    
+# 参考 https://github.com/craii/ChatTTS_WebUI/blob/main/utils.py
+def save_speaker(name, tensor):   
+    try:
+        df = pd.DataFrame({"speaker": [float(i) for i in tensor]})
+        df.to_csv(f"{SPEAKER_DIR}/{name}.csv", index=False, header=False)
+    except Exception as e:
+        print(e)
+        
+        
+# 加载音色
+# 参考 https://github.com/craii/ChatTTS_WebUI/blob/main/utils.py
+def load_speaker(name):
+    speaker_path = f"{SPEAKER_DIR}/{name}.csv"
+    if not os.path.exists(speaker_path):
+        return None
+    try:
+        import torch
+        d_s = pd.read_csv(speaker_path, header=None).iloc[:, 0]
+        tensor = torch.tensor(d_s.values)
+    except Exception as e:
+        print(e)
+        return None
+    return tensor
+

@@ -11,4 +11,3 @@ transformers
 vector-quantize-pytorch
 vocos
 waitress
-LangSegment

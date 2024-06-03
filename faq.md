@@ -74,7 +74,11 @@
 
 打开 .env  将 compile=true 改为 compile=false
 
-**13.** ChatTTS原始项目新版本有兼容问题，可能会报错 “报错 Normalizer pynini WeTextProcessing nemo_text_processing ”
+**13.** MacOS下无法安装 soundfile
+
+答：打开终端，执行 `brew install libsndfile` 然后再安装 soundfile
+
+**14.** ChatTTS原始项目新版本有兼容问题，可能会报错 “报错 Normalizer pynini WeTextProcessing nemo_text_processing ”
 
 解决方法：
 新版使用了 nemo_text_processing  和  pynini 来处理中文，但遗憾的是，pynini压根无法在windows平台安装和使用，要使用，也只能安装在WSL子系统上。
