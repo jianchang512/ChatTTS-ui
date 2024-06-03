@@ -9,29 +9,6 @@ torch._dynamo.config.cache_size_limit = 64
 torch._dynamo.config.suppress_errors = True
 torch.set_float32_matmul_precision('high')
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
-VERSION='0.82'
-
-def get_executable_path():
-    # 这个函数会返回可执行文件所在的目录
-    if getattr(sys, 'frozen', False):
-        # 如果程序是被“冻结”打包的，使用这个路径
-        return Path(sys.executable).parent.as_posix()
-    else:
-        return Path.cwd().as_posix()
-
-ROOT_DIR=get_executable_path()
-
-MODEL_DIR_PATH=Path(ROOT_DIR+"/models")
-MODEL_DIR_PATH.mkdir(parents=True, exist_ok=True)
-MODEL_DIR=MODEL_DIR_PATH.as_posix()
-
-WAVS_DIR_PATH=Path(ROOT_DIR+"/static/wavs")
-WAVS_DIR_PATH.mkdir(parents=True, exist_ok=True)
-WAVS_DIR=WAVS_DIR_PATH.as_posix()
-
-LOGS_DIR_PATH=Path(ROOT_DIR+"/logs")
-LOGS_DIR_PATH.mkdir(parents=True, exist_ok=True)
-LOGS_DIR=LOGS_DIR_PATH.as_posix()
 
 import soundfile as sf
 import ChatTTS
@@ -46,11 +23,13 @@ import hashlib,webbrowser
 from modelscope import snapshot_download
 import numpy as np
 import time
-import utils
 import threading
+from cfg import WEB_ADDRESS, SPEAKER_DIR, LOGS_DIR, WAVS_DIR, MODEL_DIR, ROOT_DIR,VERSION
+import utils
 
-# 读取 .env 变量
-WEB_ADDRESS = os.getenv('WEB_ADDRESS', '127.0.0.1:9966')
+
+
+
 
 # 默认从 modelscope 下载模型,如果想从huggingface下载模型，请将以下3行注释掉
 CHATTTS_DIR = snapshot_download('pzc163/chatTTS',cache_dir=MODEL_DIR)
@@ -130,21 +109,33 @@ def tts():
     temperature = float(request.form.get("temperature",0.3))
     top_p = float(request.form.get("top_p",0.7))
     top_k = int(request.form.get("top_k",20))
-    
+    skip_refine=0
+    is_split=0
+    refine_max_new_token=384
+    infer_max_new_token=2048
     try:
         skip_refine = int(request.form.get("skip_refine",0))
         is_split = int(request.form.get("is_split",0))
-    except Exception:
-        skip_refine=is_split=0
+    except Exception as e:
+        print(e)
+    try:
+        refine_max_new_token=int(request.form.get("refine_max_new_token",384))
+        infer_max_new_token=int(request.form.get("infer_max_new_token",2048))
+    except Exception as e:
+        print(e)
     
     app.logger.info(f"[tts]{text=}\n{voice=},{skip_refine=}\n")
     if not text:
         return jsonify({"code": 1, "msg": "text params lost"})
-    std, mean = torch.load(f'{CHATTTS_DIR}/asset/spk_stat.pt').chunk(2)
-    torch.manual_seed(voice)
-
-    rand_spk = chat.sample_random_speaker()
-    #rand_spk = torch.randn(768) * std + mean
+    # 固定音色
+    rand_spk=utils.load_speaker(voice)
+    if rand_spk is None:    
+        torch.manual_seed(voice)
+        std, mean = torch.load(f'{CHATTTS_DIR}/asset/spk_stat.pt').chunk(2)
+        #rand_spk = chat.sample_random_speaker()        
+        rand_spk = torch.randn(768) * std + mean
+        # 保存音色
+        utils.save_speaker(voice,rand_spk)
 
     audio_files = []
     md5_hash = hashlib.md5()
@@ -162,8 +153,9 @@ def tts():
         'spk_emb': rand_spk,
         'temperature':temperature,
         'top_P':top_p,
-        'top_K':top_k
-    }, params_refine_text= {'prompt': prompt},do_text_normalization=False)
+        'top_K':top_k,
+        'max_new_token':infer_max_new_token
+    }, params_refine_text= {'prompt': prompt,'max_new_token':refine_max_new_token},do_text_normalization=False)
 
     end_time = time.time()
     inference_time = end_time - start_time

@@ -102,7 +102,7 @@ https://github.com/jianchang512/ChatTTS-ui/assets/3378335/43370012-68c3-495f-a1b
 
 ## MacOS 下源码部署
 
-1. 配置好 python3.9+环境,安装git ，执行命令  `brew install git python@3.10`
+1. 配置好 python3.9+环境,安装git ，执行命令  `brew install libsndfile git python@3.10`
    继续执行
 
     ```
