@@ -119,12 +119,16 @@ def num_to_english(num):
 
 
 # 数字转为中英文读法
-def num2text(text,lang="zh"):
-    numtext=[' zero ',' one ',' two ',' three ',' four ',' five ',' six ',' seven ',' eight ',' nine ']
-    point=' point '
-    if lang=='zh':
-        numtext=['零','一','二','三','四','五','六','七','八','九']
-        point='点'
+def num2text(text):
+    numtext=['零','一','二','三','四','五','六','七','八','九']
+    point='点'
+    lang='zh'
+    # 英文字符长度超过一半
+    if len(" ".join(re.findall(r'\b([a-zA-Z]{3,})\b',text,re.I)))>=len(text)/2:
+        lang='en'
+        numtext=[' zero ',' one ',' two ',' three ',' four ',' five ',' six ',' seven ',' eight ',' nine ']
+        point=' point '
+        
     # 取出数字 number_list= [('1000200030004000.123', '1000200030004000', '123'), ('23425', '23425', '')]
     number_list=re.findall('((\d+)(?:\.(\d+))?)',text)
     #print(number_list)
@@ -148,7 +152,10 @@ def num2text(text,lang="zh"):
 # 切分中英文并转换数字
 def split_text(text_list):
     result=[]
-    for text in text_list:
+    for i,text in enumerate(text_list):
+        text_list[i]=num2text(text)
+        '''
+        continue
         text=text.replace('[uv_break]','<en>[uv_break]</en>').replace('[laugh]','<en>[laugh]</en>')
         langlist=LangSegment.getTexts(text)
         length=len(langlist)
@@ -158,8 +165,9 @@ def split_text(text_list):
                 result[-1]+=t['text']
             else:
                 result.append(num2text(t['text'],t['lang']))
-    print(f'{result=}')
-    return result
+        '''
+    print(f'{text_list=}')
+    return text_list
 
 
 

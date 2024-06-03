@@ -9,7 +9,7 @@ torch._dynamo.config.cache_size_limit = 64
 torch._dynamo.config.suppress_errors = True
 torch.set_float32_matmul_precision('high')
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
-VERSION='0.81'
+VERSION='0.82'
 
 def get_executable_path():
     # 这个函数会返回可执行文件所在的目录
