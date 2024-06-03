@@ -1,6 +1,6 @@
 # ChatTTS webUI & API 
 
-一个简单的本地网页界面，直接在网页使用 [ChatTTS](https://github.com/2noise/chattts) 将文字合成为语音，同时支持对外提供API接口。
+一个简单的本地网页界面，直接在网页使用 [ChatTTS](https://github.com/2noise/chattts) 将文字合成为语音，支持中英文、数字混杂，并提供API接口。
 
 [Releases中可下载Windows整合包](https://github.com/jianchang512/ChatTTS-ui/releases)。
 
