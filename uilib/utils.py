@@ -4,7 +4,7 @@ import re
 import webbrowser
 from pathlib import Path
 import pandas as pd
-from cfg import SPEAKER_DIR
+from .cfg import SPEAKER_DIR
 
 def openweb(url):
     time.sleep(3)

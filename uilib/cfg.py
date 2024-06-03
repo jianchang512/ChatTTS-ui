@@ -32,4 +32,4 @@ SPEAKER_DIR=SPEAKER_DIR_PATH.as_posix()
 # 读取 .env 变量
 WEB_ADDRESS = os.getenv('WEB_ADDRESS', '127.0.0.1:9966')
 
-VERSION='0.83'
+VERSION='0.84'
