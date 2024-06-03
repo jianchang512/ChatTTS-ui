@@ -8,7 +8,7 @@
 
 > 界面预览
 >
-> ![image](https://github.com/jianchang512/ChatTTS-ui/assets/3378335/26249652-5511-48a7-abad-76e3247910d2)
+> ![image](https://github.com/jianchang512/ChatTTS-ui/assets/3378335/4ce62ff7-6e82-4695-97fc-861a4393d052)
 
 >
 
