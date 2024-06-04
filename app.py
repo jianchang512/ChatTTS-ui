@@ -114,9 +114,14 @@ def tts():
     is_split=0
     refine_max_new_token=384
     infer_max_new_token=2048
+    text_seed=42
     try:
         skip_refine = int(request.form.get("skip_refine",0))
         is_split = int(request.form.get("is_split",0))
+    except Exception as e:
+        print(e)
+    try:
+        text_seed = int(request.form.get("text_seed",42))
     except Exception as e:
         print(e)
     try:
@@ -149,7 +154,9 @@ def tts():
     # 中英按语言分行
     text_list=[t.strip() for t in text.split("\n") if t.strip()]
     new_text=text_list if is_split==0 else utils.split_text(text_list)
-
+    if text_seed>0:
+        torch.manual_seed(text_seed)
+    print(f'{text_seed=}')
     wavs = chat.infer(new_text, use_decoder=True, skip_refine_text=True if int(skip_refine)==1 else False,params_infer_code={
         'spk_emb': rand_spk,
         'temperature':temperature,
