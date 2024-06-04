@@ -83,7 +83,7 @@ https://github.com/jianchang512/ChatTTS-ui/assets/3378335/43370012-68c3-495f-a1b
 
 ## Linux 下源码部署
 
-1. 配置好 python3.9+环境
+1. 配置好 python3.9-3.11环境
 2. 创建空目录 `/data/chattts` 执行命令 `cd /data/chattts &&  git clone https://github.com/jianchang512/chatTTS-ui .`
 3. 创建虚拟环境 `python3 -m venv venv`
 4. 激活虚拟环境 `source ./venv/bin/activate`
@@ -143,7 +143,7 @@ https://github.com/jianchang512/ChatTTS-ui/assets/3378335/43370012-68c3-495f-a1b
 
 ## MacOS 下源码部署
 
-1. 配置好 python3.9+环境,安装git ，执行命令  `brew install libsndfile git python@3.10`
+1. 配置好 python3.9-3.11 环境,安装git ，执行命令  `brew install libsndfile git python@3.10`
    继续执行
 
     ```
@@ -165,7 +165,7 @@ https://github.com/jianchang512/ChatTTS-ui/assets/3378335/43370012-68c3-495f-a1b
 
 ## Windows源码部署
 
-1. 下载python3.9+，安装时注意选中`Add Python to environment variables`
+1. 下载python3.9-3.11，安装时注意选中`Add Python to environment variables`
 2. 下载并安装git，https://github.com/git-for-windows/git/releases/download/v2.45.1.windows.1/Git-2.45.1-64-bit.exe 
 3. 创建空文件夹 `D:/chattts` 并进入，地址栏输入 `cmd`回车，在弹出的cmd窗口中执行命令 `git clone https://github.com/jianchang512/chatTTS-ui .`
 4. 创建虚拟环境，执行命令 `python -m venv venv`
@@ -188,7 +188,7 @@ https://github.com/jianchang512/ChatTTS-ui/assets/3378335/43370012-68c3-495f-a1b
 
 1. 如果GPU显存低于4G，将强制使用CPU。
 
-2. Windows或Linux下如果显存大于4G并且是英伟达显卡，但源码部署后仍使用CPU，可尝试先卸载torch再重装，卸载`pip uninstall -y torch torchaudio` , 重新安装cuda版torch。`pip install torch==2.1.2 torchaudio==2.1.2 --index-url https://download.pytorch.org/whl/cu118`
+2. Windows或Linux下如果显存大于4G并且是英伟达显卡，但源码部署后仍使用CPU，可尝试先卸载torch再重装，卸载`pip uninstall -y torch torchaudio` , 重新安装cuda版torch。`pip install torch==2.1.2 torchaudio==2.1.2 --index-url https://download.pytorch.org/whl/cu118`  。必须已安装CUDA11.8+
 
 3. 注意 modelscope 仅允许中国大陆ip下载模型，如果遇到 proxy 类错误，请关闭代理。如果你希望从 huggingface.co 下载模型，请打开 `app.py` 查看大约第34行-50行的注释。
 
