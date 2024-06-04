@@ -1,5 +1,11 @@
 # 常见问题与报错
 
+**0.** 执行app.py报错 FileNotFoundError: [Errno 2] No such file or directory: '../ChatTTS-ui/models/pzc163/chatTTS/config/path.yaml
+
+答：模型不完整，重新下载模型或者 打开 https://www.modelscope.cn/models/pzc163/chatTTS/files 下载 path.yaml 、复制到报错里显示的文件夹内 ChatTTS-ui/models/pzc163/chatTTS/config/
+
+
+
 **1.**  MacOS 报错 `Initializing libomp.dylib, but found libiomp5.dylib already initialized`
 
 > 答：在app.py的 `import os` 的下一行，添加代码
