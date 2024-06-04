@@ -28,6 +28,8 @@ https://github.com/jianchang512/ChatTTS-ui/assets/3378335/43370012-68c3-495f-a1b
 ## Windows预打包版
 
 1. 从 [Releases](https://github.com/jianchang512/chatTTS-ui/releases)中下载压缩包，解压后双击 app.exe 即可使用
+2. 某些安全软件可能报毒，请退出或使用源码部署
+3. 英伟达显卡大于4G显存，并安装了CUDA11.8+后，将启用GPU加速
 
 ## Linux 下容器部署
 
@@ -86,7 +88,9 @@ https://github.com/jianchang512/ChatTTS-ui/assets/3378335/43370012-68c3-495f-a1b
 3. 创建虚拟环境 `python3 -m venv venv`
 4. 激活虚拟环境 `source ./venv/bin/activate`
 5. 安装依赖 `pip3 install -r requirements.txt`
-6. 如果不需要CUDA加速，执行 `pip3 install torch==2.1.2 torchaudio==2.1.2`
+6. 如果不需要CUDA加速，执行 
+	
+	`pip3 install torch==2.1.2 torchaudio==2.1.2`
 
 	如果需要CUDA加速，执行 
 	```
@@ -167,7 +171,9 @@ https://github.com/jianchang512/ChatTTS-ui/assets/3378335/43370012-68c3-495f-a1b
 4. 创建虚拟环境，执行命令 `python -m venv venv`
 4. 激活虚拟环境，执行 `.\venv\scripts\activate`
 5. 安装依赖,执行 `pip install -r requirements.txt`
-6. 如果不需要CUDA加速，执行 `pip install torch==2.1.2 torchaudio==2.1.2`
+6. 如果不需要CUDA加速，
+
+	执行 `pip install torch==2.1.2 torchaudio==2.1.2`
 
 	如果需要CUDA加速，执行 
 	
@@ -178,30 +184,38 @@ https://github.com/jianchang512/ChatTTS-ui/assets/3378335/43370012-68c3-495f-a1b
 7. 执行 `python app.py` 启动，将自动打开浏览器窗口，默认地址 `http://127.0.0.1:9966`  (注意：默认从 modelscope 魔塔下载模型，不可使用代理下载，请关闭代理)
 
 
-## 源码部署注意
+## 部署注意
 
-1. 源码部署启动后，会先从 modelscope下载模型，但modelscope缺少spk_stat.pt，会报错，请点击链接 https://huggingface.co/2Noise/ChatTTS/blob/main/asset/spk_stat.pt 下载 spk_stat.pt，将该文件复制到 `项目目录/models/pzc163/chatTTS/asset/ 文件夹内`
+1. 如果GPU显存低于4G，将强制使用CPU。
 
-2. 注意 modelscope 仅允许中国大陆ip下载模型，如果遇到 proxy 类错误，请关闭代理。如果你希望从 huggingface.co 下载模型，请打开 `app.py` 查看大约第50行-60行的注释。
+2. Windows或Linux下如果显存大于4G并且是英伟达显卡，但源码部署后仍使用CPU，可尝试先卸载torch再重装，卸载`pip uninstall -y torch torchaudio` , 重新安装cuda版torch。`pip install torch==2.1.2 torchaudio==2.1.2 --index-url https://download.pytorch.org/whl/cu118`
 
-3. 如果需要GPU加速，必须是英伟达显卡，并且安装 cuda版本的torch。`pip install torch==2.1.2 torchaudio==2.1.2 --index-url https://download.pytorch.org/whl/cu118`
+3. 注意 modelscope 仅允许中国大陆ip下载模型，如果遇到 proxy 类错误，请关闭代理。如果你希望从 huggingface.co 下载模型，请打开 `app.py` 查看大约第34行-50行的注释。
+
 
 ```
+
 # 默认从 modelscope 下载模型,如果想从huggingface下载模型，请将以下3行注释掉
 CHATTTS_DIR = snapshot_download('pzc163/chatTTS',cache_dir=MODEL_DIR)
 chat = ChatTTS.Chat()
-chat.load_models(source="local",local_path=CHATTTS_DIR)
+# 通过将 .env中 compile设为false，禁用推理优化. 其他为启用。一定情况下通过禁用，能提高GPU效率
+chat.load_models(source="local",local_path=CHATTTS_DIR, compile=True if os.getenv('compile','true').lower()!='false' else False)
 
 # 如果希望从 huggingface.co下载模型，将以下注释删掉。将上方3行内容注释掉
-#os.environ['HF_HUB_CACHE']=MODEL_DIR
-#os.environ['HF_ASSETS_CACHE']=MODEL_DIR
-#chat = ChatTTS.Chat()
-#chat.load_models()
+
+# import huggingface_hub
+# os.environ['HF_HUB_CACHE']=MODEL_DIR
+# os.environ['HF_ASSETS_CACHE']=MODEL_DIR
+# CHATTTS_DIR = huggingface_hub.snapshot_download(cache_dir=MODEL_DIR,repo_id="2Noise/ChatTTS", allow_patterns=["*.pt", "*.yaml"])
+# chat = ChatTTS.Chat()
+# chat.load_models(source="local",local_path=CHATTTS_DIR, compile=True if os.getenv('compile','true').lower()!='false' else False)
 
 ```
 
 
 ## [常见问题与报错解决方法](faq.md)
+
+
 
 
 ## 修改http地址
@@ -232,6 +246,7 @@ skip_refine:	int|   可选， 默认0， 1=跳过 refine text，0=不跳过
 
 custom_voice:	int|  可选， 默认0，自定义获取音色值时的种子值，需要大于0的整数，如果设置了则以此为准，将忽略 `voice`
 
+is_split: int| 可选，默认 0， 1=将数字转为文本以便正确发音，0=保持不变
 
 **返回:json数据**
 
@@ -258,7 +273,8 @@ res = requests.post('http://127.0.0.1:9966/tts', data={
   "top_p": 0.7,
   "top_k": 20,
   "skip_refine": 0,
-  "custom_voice": 0
+  "custom_voice": 0,
+  "is_split": 1
 })
 print(res.json())
 
