@@ -78,7 +78,16 @@
 
 答：打开终端，执行 `brew install libsndfile` 然后再安装 soundfile
 
-**14.** ChatTTS原始项目新版本有兼容问题，可能会报错 “报错 Normalizer pynini WeTextProcessing nemo_text_processing ”
+
+**14.** 如何离线使用
+
+答：
+
+1. 使用源码部署
+2. 先运行一次，确保模型下载完毕
+3. 打开 app.py 大约35行， `CHATTTS_DIR = snapshot_download('pzc163/chatTTS',cache_dir=MODEL_DIR)` 改为 `CHATTTS_DIR = MODEL_DIR+"/pzc163/chatTTS"`
+
+**15.** ChatTTS原始项目新版本有兼容问题，可能会报错 “报错 Normalizer pynini WeTextProcessing nemo_text_processing ”
 
 解决方法：
 新版使用了 nemo_text_processing  和  pynini 来处理中文，但遗憾的是，pynini压根无法在windows平台安装和使用，要使用，也只能安装在WSL子系统上。

@@ -32,7 +32,7 @@ from uilib import utils
 
 
 # 默认从 modelscope 下载模型,如果想从huggingface下载模型，请将以下3行注释掉
-CHATTTS_DIR = snapshot_download('pzc163/chatTTS',cache_dir=MODEL_DIR)
+CHATTTS_DIR = MODEL_DIR+"/pzc163/chatTTS" # snapshot_download('pzc163/chatTTS',cache_dir=MODEL_DIR)
 chat = ChatTTS.Chat()
 # 通过将 .env中 compile设为false，禁用推理优化. 其他为启用。一定情况下通过禁用，能提高GPU效率
 chat.load_models(source="local",local_path=CHATTTS_DIR, compile=True if os.getenv('compile','true').lower()!='false' else False)
