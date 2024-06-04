@@ -184,7 +184,9 @@ https://github.com/jianchang512/ChatTTS-ui/assets/3378335/43370012-68c3-495f-a1b
 
 2. 注意 modelscope 仅允许中国大陆ip下载模型，如果遇到 proxy 类错误，请关闭代理。如果你希望从 huggingface.co 下载模型，请打开 `app.py` 查看大约第50行-60行的注释。
 
-3. 如果需要GPU加速，必须是英伟达显卡，并且安装 cuda版本的torch。`pip install torch==2.1.2 torch==2.1.2 --index-url https://download.pytorch.org/whl/cu118`
+3. 如果需要英伟达GPU进行CUDA加速，请安装 cuda版本的torch。`pip install torch==2.1.2 torch==2.1.2 --index-url https://download.pytorch.org/whl/cu118`
+
+4. 如果需要AMD GPU来进行加速，请参考上文 <**Linux下源码部署**>相关内容安装ROCm及PyTorch-ROCm版本。目前ROCM只支持Linux。
 
 ```
 # 默认从 modelscope 下载模型,如果想从huggingface下载模型，请将以下3行注释掉
