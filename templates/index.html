@@ -55,11 +55,17 @@
 				<div class="col align-items-center input-group">
 					<span class="input-group-text">选择音色</span>
 					<select id="voice" class="form-control">
+						<option value="11">男(11)</option>
+						<option value="12">男(12)</option>
+						<option value="16">男(16)</option>
 						<option value="2222">男(2222)</option>
 						<option value="4444">男(4444)</option>
 						<option value="6653">男(6653)</option>
 						<option value="7869">男(7869)</option>
 						<option value="9999">男(9999)</option>
+						<option value="5">女(5)</option>
+						<option value="13">女(13)</option>
+						<option value="14">女(14)</option>
 						<option value="1111">女(1111)</option>
 						<option value="3333">女(3333)</option>
 						<option value="4099">女(4099)</option>
@@ -155,12 +161,20 @@ $(document).ready(function() {
 	$(this).next().text(($(this).val()));
   });
     $('#submit-btn').click(function() {
-        var text = $('#text-input').val();
+        var text = $('#text-input').val().trim();
         if (text === '') {
             layer.alert('必须输入文本',{title:false});
         } else {
 			let index=layer.load();
 			let custom_voice=$('#custom_voice').val();
+			text_list=text.split("\n").map(it=>{
+				it=it.trim()
+				if(it.length>150 && /。/.test(it)){
+					return it.replace(/。/g,"。\n")
+				}
+				return it    
+			});
+			text=text_list.join("")
 			let data={
 				text: text,
 				prompt:$('#prompt').val(),
@@ -174,7 +188,6 @@ $(document).ready(function() {
 				is_split:$('#is_split').prop('checked')?1:0,
 				custom_voice:custom_voice?parseInt(custom_voice):0
 			};
-
       $.ajax({
         url: '/tts',
         type: 'POST',
@@ -208,7 +221,7 @@ print(res.json())
 					</div>
 					<div class="d-flex align-items-center my-1">
 						<a title="移除显示，不删除wav文件" href="javascripts:;" onclick="$(this).parent().parent().remove()" class="btn btn-close font12 me-2"></a>
-						<audio controls src="${audio.url}"></audio>
+						<audio controls autoplay src="${audio.url}"></audio>
 					</div>
                     <div class="d-flex align-items-center text-secondary fs-6">
 						<button class="btn btn-info text-light me-2 show-js-btn" data-js-code="${encodeURIComponent(jsCode)}">显示API调用</button>
