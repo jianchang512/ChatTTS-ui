@@ -47,9 +47,6 @@ chat.load_models(source="local",local_path=CHATTTS_DIR, compile=True if os.geten
     # chat.load_models(source="local",local_path=CHATTTS_DIR, compile=True if os.getenv('compile','true').lower()!='false' else False)
 
 
-
-
-
 # 配置日志
 # 禁用 Werkzeug 默认的日志处理器
 log = logging.getLogger('werkzeug')
