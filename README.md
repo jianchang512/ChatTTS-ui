@@ -93,12 +93,14 @@ https://github.com/jianchang512/ChatTTS-ui/assets/3378335/43370012-68c3-495f-a1b
 	`pip3 install torch==2.2.0 torchaudio==2.2.0`
 
 	如果需要CUDA加速，执行 
+	
 	```
 	pip install torch==2.2.0 torchaudio==2.2.0 --index-url https://download.pytorch.org/whl/cu118
-			
+
 	pip install nvidia-cublas-cu11 nvidia-cudnn-cu11
 		
 	```
+	
 	另需安装 CUDA11.8+ ToolKit，请自行搜索安装方法 或参考 https://juejin.cn/post/7318704408727519270
 
    	除CUDA外，也可以使用AMD GPU进行加速，这需要安装ROCm和PyTorch_ROCm版本。AMG GPU借助ROCm，在PyTorch开箱即用，无需额外修改代码。
@@ -106,10 +108,10 @@ https://github.com/jianchang512/ChatTTS-ui/assets/3378335/43370012-68c3-495f-a1b
 	1. 再通过https://pytorch.org/ 安装PyTorch_ROCm版本。
 
 
-	```
-     	pip3 install torch==2.2.0  torchaudio==2.2.0 --index-url https://download.pytorch.org/whl/rocm6.0
-	```
-        安装完成后，可以通过rocm-smi命令来查看系统中的AMD GPU。也可以用以下Torch代码(query_gpu.py)来查询当前AMD GPU Device.
+	`pip3 install torch==2.2.0  torchaudio==2.2.0 --index-url https://download.pytorch.org/whl/rocm6.0`
+	
+    安装完成后，可以通过rocm-smi命令来查看系统中的AMD GPU。也可以用以下Torch代码(query_gpu.py)来查询当前AMD GPU Device.
+	
 	```
 	import torch
 	
@@ -129,11 +131,13 @@ https://github.com/jianchang512/ChatTTS-ui/assets/3378335/43370012-68c3-495f-a1b
  	使用以上代码，以AMD Radeon Pro W7900为例，查询设备如下。
 
  	```
+	
  	$ python ~/query_gpu.py
 	
 	2.4.0.dev20240401+rocm6.0
 	
  	Using GPU: AMD Radeon PRO W7900
+	
  	```
 
 

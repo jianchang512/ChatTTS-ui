@@ -24,27 +24,27 @@ from modelscope import snapshot_download
 import numpy as np
 import time
 import threading
-from uilib.cfg import WEB_ADDRESS, SPEAKER_DIR, LOGS_DIR, WAVS_DIR, MODEL_DIR, ROOT_DIR,VERSION
-from uilib import utils
+from uilib.cfg import WEB_ADDRESS, SPEAKER_DIR, LOGS_DIR, WAVS_DIR, MODEL_DIR, ROOT_DIR
+from uilib import utils,VERSION
 
-
-
-
-
-# 默认从 modelscope 下载模型,如果想从huggingface下载模型，请将以下3行注释掉
-CHATTTS_DIR = MODEL_DIR+"/pzc163/chatTTS" # snapshot_download('pzc163/chatTTS',cache_dir=MODEL_DIR)
+CHATTTS_DIR= MODEL_DIR+'/pzc163/chatTTS'
+# 默认从 modelscope 下载模型,如果想从huggingface下载模型，请将以下代码注释掉
+# 如果已存在则不再下载和检测更新，便于离线内网使用
+if not os.path.exists(CHATTTS_DIR+"/config/path.yaml"):
+    snapshot_download('pzc163/chatTTS',cache_dir=MODEL_DIR)
 chat = ChatTTS.Chat()
-# 通过将 .env中 compile设为false，禁用推理优化. 其他为启用。一定情况下通过禁用，能提高GPU效率
 chat.load_models(source="local",local_path=CHATTTS_DIR, compile=True if os.getenv('compile','true').lower()!='false' else False)
 
 # 如果希望从 huggingface.co下载模型，将以下注释删掉。将上方3行内容注释掉
-
-# import huggingface_hub
-# os.environ['HF_HUB_CACHE']=MODEL_DIR
-# os.environ['HF_ASSETS_CACHE']=MODEL_DIR
-# CHATTTS_DIR = huggingface_hub.snapshot_download(cache_dir=MODEL_DIR,repo_id="2Noise/ChatTTS", allow_patterns=["*.pt", "*.yaml"])
-# chat = ChatTTS.Chat()
-# chat.load_models(source="local",local_path=CHATTTS_DIR, compile=True if os.getenv('compile','true').lower()!='false' else False)
+# 如果已存在则不再下载和检测更新，便于离线内网使用
+#CHATTTS_DIR=MODEL_DIR+'/models--2Noise--ChatTTS'
+#if not os.path.exists(CHATTTS_DIR):
+    #import huggingface_hub
+    #os.environ['HF_HUB_CACHE']=MODEL_DIR
+    #os.environ['HF_ASSETS_CACHE']=MODEL_DIR
+    #huggingface_hub.snapshot_download(cache_dir=MODEL_DIR,repo_id="2Noise/ChatTTS", allow_patterns=["*.pt", "*.yaml"])
+    # chat = ChatTTS.Chat()
+    # chat.load_models(source="local",local_path=CHATTTS_DIR, compile=True if os.getenv('compile','true').lower()!='false' else False)
 
 
 

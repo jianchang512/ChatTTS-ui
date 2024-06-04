@@ -127,6 +127,13 @@ def get_lang(text):
     # 使用正则表达式来匹配中文字符范围
     return "zh" if re.search('[\u4e00-\u9fff]', text) is not None else "en"
 
+def fraction_to_words(match):
+    numerator, denominator = match.groups()
+    # 这里只是把数字直接拼接成了英文分数的形式, 实际上应该使用某种方式将数字转换为英文单词
+    # 例如: "1/2" -> "one half", 这里仅为展示目的而直接返回了 "numerator/denominator"
+    return numerator + " over " + denominator
+
+
 
 # 数字转为中英文读法
 def num2text(text):
@@ -134,11 +141,21 @@ def num2text(text):
     if lang=='zh':
         numtext=['零','一','二','三','四','五','六','七','八','九']
         point='点'
+        
+        text = re.sub(r'(\d+)\s*\+', r'\1 加', text)
+        text = re.sub(r'(\d+)\s*\-', r'\1 减', text)
+        text = re.sub(r'(\d+)\s*[\*x]', r'\1 乘', text)
+        text = re.sub(r'(\d+)\s*/\s*(\d+)', r'\2分之\1', text)
+
     # 英文字符长度超过一半
     else:
         numtext=[' zero ',' one ',' two ',' three ',' four ',' five ',' six ',' seven ',' eight ',' nine ']
         point=' point '
-        
+        text = re.sub(r'(\d+)\s*\+', r'\1 plus ', text)
+        text = re.sub(r'(\d+)\s*\-', r'\1 minus ', text)
+        text = re.sub(r'(\d+)\s*[\*x]', r'\1 times ', text)
+        text = re.sub(r'(\d+)\s*/\s*(\d+)', fraction_to_words, text)
+
     # 取出数字 number_list= [('1000200030004000.123', '1000200030004000', '123'), ('23425', '23425', '')]
     number_list=re.findall('((\d+)(?:\.(\d+))?%?)',text)
     #print(number_list)
@@ -154,9 +171,9 @@ def num2text(text):
                 int_text=('百分之' if lang=='zh'  else ' the pronunciation of ') + int_text
             text=text.replace(dc[0],int_text)
     if lang=='zh':
-        return text.replace('1','一').replace('2','二').replace('3','三').replace('4','四').replace('5','五').replace('6','六').replace('7','七').replace('8','八').replace('9','九').replace('0','零')
+        return text.replace('1','一').replace('2','二').replace('3','三').replace('4','四').replace('5','五').replace('6','六').replace('7','七').replace('8','八').replace('9','九').replace('0','零').replace('+','加').replace('÷','除以').replace('=','等于')
         
-    return text.replace('1',' one ').replace('2',' two ').replace('3',' three ').replace('4',' four ').replace('5',' five ').replace('6',' six ').replace('7','seven').replace('8',' eight ').replace('9',' nine ').replace('0',' zero ')
+    return text.replace('1',' one ').replace('2',' two ').replace('3',' three ').replace('4',' four ').replace('5',' five ').replace('6',' six ').replace('7','seven').replace('8',' eight ').replace('9',' nine ').replace('0',' zero ').replace('=',' equals ')
 
 
 
@@ -169,18 +186,6 @@ def split_text(text_list):
             result=result+split_text_by_punctuation(tmp)
         else:
             result.append(tmp)
-        '''
-        continue
-        text=text.replace('[uv_break]','<en>[uv_break]</en>').replace('[laugh]','<en>[laugh]</en>')
-        langlist=LangSegment.getTexts(text)
-        length=len(langlist)
-        for i,t in enumerate(langlist):
-            # 当前是控制符，则插入到前一个            
-            if len(result)>0 and re.match(r'^[\s\,\.]*?\[(uv_break|laugh)\][\s\,\.]*$',t['text']) is not None:
-                result[-1]+=t['text']
-            else:
-                result.append(num2text(t['text'],t['lang']))
-        '''
     print(f'{result=},len={len(result)}')
     return result
 
@@ -258,3 +263,14 @@ def load_speaker(name):
         return None
     return tensor
 
+
+# 判断是否可以连接外网
+def is_network():
+    try:
+        import requests
+        requests.head('https://baidu.com')
+    except Exception:
+        return False
+    else:
+        return True
+    return False
