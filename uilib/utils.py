@@ -125,7 +125,7 @@ def get_lang(text):
     # 使用正则表达式替换所有中文标点为""
     cleaned_text = re.sub(chinese_punctuation, "", text)
     # 使用正则表达式来匹配中文字符范围
-    return "zh" if re.search('[\u4e00-\u9fff]', text) is not None else "en"
+    return "zh" if re.search('[\u4e00-\u9fff]', cleaned_text) is not None else "en"
 
 def fraction_to_words(match):
     numerator, denominator = match.groups()
