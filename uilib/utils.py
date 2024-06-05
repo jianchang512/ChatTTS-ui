@@ -145,20 +145,18 @@ def num2text(text):
         text = re.sub(r'(\d+)\s*\+', r'\1 加', text)
         text = re.sub(r'(\d+)\s*\-', r'\1 减', text)
         text = re.sub(r'(\d+)\s*[\*x]', r'\1 乘', text)
-        text = re.sub(r'(\d+)\s*/\s*(\d+)', r'\2分之\1', text)
+        text = re.sub(r'((?:\d+\.)?\d+)\s*/\s*(\d+)', r'\2分之\1', text)
 
-    # 英文字符长度超过一半
     else:
         numtext=[' zero ',' one ',' two ',' three ',' four ',' five ',' six ',' seven ',' eight ',' nine ']
         point=' point '
         text = re.sub(r'(\d+)\s*\+', r'\1 plus ', text)
         text = re.sub(r'(\d+)\s*\-', r'\1 minus ', text)
         text = re.sub(r'(\d+)\s*[\*x]', r'\1 times ', text)
-        text = re.sub(r'(\d+)\s*/\s*(\d+)', fraction_to_words, text)
+        text = re.sub(r'((?:\d+\.)?\d+)\s*/\s*(\d+)', fraction_to_words, text)
 
     # 取出数字 number_list= [('1000200030004000.123', '1000200030004000', '123'), ('23425', '23425', '')]
     number_list=re.findall('((\d+)(?:\.(\d+))?%?)',text)
-    #print(number_list)
     if len(number_list)>0:            
         #dc= ('1000200030004000.123', '1000200030004000', '123','')
         for m,dc in enumerate(number_list):
@@ -177,7 +175,7 @@ def num2text(text):
 
 
 
-# 切分中英文并转换数字
+# 中英文数字转换为文字，特殊符号处理
 def split_text(text_list):
     result=[]
     for i,text in enumerate(text_list):
@@ -190,12 +188,12 @@ def split_text(text_list):
     print(f'{result=},len={len(result)}')
     return result
 
-
+# 切分长行 200 150
 def split_text_by_punctuation(text):
     # 定义长度限制
     min_length = 150
-    punctuation_marks = "。？！，、；：“”‘’《》「」『』（）【】…—"
-    english_punctuation = ".?!,:;\"'()[]{}…"
+    punctuation_marks = "。？！，、；：“”‘’》」』）】…—"
+    english_punctuation = ".?!,:;\"')}…"
     
     # 结果列表
     result = []
@@ -203,8 +201,11 @@ def split_text_by_punctuation(text):
     pos = 0
     
     # 遍历文本中的每个字符
+    text_length=len(text)
     for i, char in enumerate(text):
         if char in punctuation_marks or char in english_punctuation:
+            if  char=='.' and i< text_length-1 and re.match(r'\d',text[i+1]):
+                continue
             # 当遇到标点时，判断当前分段长度是否超过120
             if i - pos > min_length:
                 # 如果长度超过120，将当前分段添加到结果列表中
