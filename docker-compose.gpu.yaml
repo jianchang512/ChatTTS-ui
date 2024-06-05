@@ -1,6 +1,8 @@
 services:
   chat-tts-ui:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile.gpu
     container_name: chat-tts-ui
     restart: always
     volumes:
