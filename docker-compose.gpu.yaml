@@ -9,12 +9,12 @@ services:
       - "./:/app"
     ports:
       - 9966:9966
-    user: "${UID}:${GID}"
+    user: root
     environment:
       LOG_LEVEL: DEBUG
       WEB_ADDRESS: 0.0.0.0:9966
       NVIDIA_VISIBLE_DEVICES: all
-    command: python3 app.py
+    command: gunicorn -b $WEB_ADDRESS --timeout 600 app:app -w 1
     deploy:
       resources:
         reservations:

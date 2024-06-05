@@ -17,7 +17,6 @@ from dotenv import load_dotenv
 from flask import Flask, request, render_template, jsonify,  send_from_directory
 import logging
 from logging.handlers import RotatingFileHandler
-from waitress import serve
 load_dotenv()
 from random import random
 from modelscope import snapshot_download
@@ -32,8 +31,6 @@ CHATTTS_DIR= MODEL_DIR+'/pzc163/chatTTS'
 # 如果已存在则不再下载和检测更新，便于离线内网使用
 if not os.path.exists(CHATTTS_DIR+"/config/path.yaml"):
     snapshot_download('pzc163/chatTTS',cache_dir=MODEL_DIR)
-chat = ChatTTS.Chat()
-chat.load_models(source="local",local_path=CHATTTS_DIR, compile=True if os.getenv('compile','true').lower()!='false' else False)
 
 # 如果希望从 huggingface.co下载模型，将以下注释删掉。将上方3行内容注释掉
 # 如果已存在则不再下载和检测更新，便于离线内网使用
@@ -96,9 +93,18 @@ def index():
 # top_p
 # top_k
 # prompt：
+chat = None
+chat_ins_lock = threading.Lock()
 @app.route('/tts', methods=['GET', 'POST'])
 def tts():
     # 原始字符串
+    global chat
+    chat_ins_lock.acquire()
+    if not chat:
+        chat = ChatTTS.Chat()
+        chat.load_models(source="local",local_path=CHATTTS_DIR, compile=True if os.getenv('compile','true').lower()!='false' else False)
+    chat_ins_lock.release()
+
     text = request.args.get("text","").strip() or request.form.get("text","").strip()
     prompt = request.form.get("prompt",'')
     try:
@@ -215,7 +221,5 @@ try:
     host = WEB_ADDRESS.split(':')
     print(f'启动:{WEB_ADDRESS}')
     threading.Thread(target=utils.openweb,args=(f'http://{WEB_ADDRESS}',)).start()
-    serve(app,host=host[0], port=int(host[1]))
 except Exception as e:
     print(e)
-
