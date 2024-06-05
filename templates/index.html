@@ -177,6 +177,7 @@ $(document).ready(function() {
         } else {
 			let index=layer.load();
 			let custom_voice=$('#custom_voice').val();
+			/*
 			text_list=text.split("\n").map(it=>{
 				it=it.trim()
 				if(it.length>150 && /。/.test(it)){
@@ -185,6 +186,7 @@ $(document).ready(function() {
 				return it    
 			});
 			text=text_list.join("")
+			*/
 			let data={
 				text: text,
 				prompt:$('#prompt').val(),
