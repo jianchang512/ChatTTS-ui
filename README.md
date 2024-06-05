@@ -54,7 +54,12 @@ https://github.com/jianchang512/ChatTTS-ui/assets/3378335/43370012-68c3-495f-a1b
    启动容器并查看初始化日志：
 
    ```bash
-   docker compose up -d
+   gpu版本
+   docker compose -f docker-compose.gpu.yaml up -d 
+
+   cpu版本    
+   docker compose -f docker-compose.cpu.yaml up -d
+
    docker compose logs -f --no-log-prefix
 
 3. 访问 ChatTTS WebUI
@@ -77,7 +82,13 @@ https://github.com/jianchang512/ChatTTS-ui/assets/3378335/43370012-68c3-495f-a1b
 
    ```bash
    docker compose down
-   docker compose up -d --build
+
+   gpu版本
+   docker compose -f docker-compose.gpu.yaml up -d --build
+
+   cpu版本
+   docker compose -f docker-compose.cpu.yaml up -d --build
+   
    docker compose logs -f --no-log-prefix
    ```
 
