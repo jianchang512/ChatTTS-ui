@@ -4,56 +4,15 @@ import re
 import webbrowser
 from pathlib import Path
 import pandas as pd
+# ref: https://github.com/PaddlePaddle/PaddleSpeech/tree/develop/paddlespeech/t2s/frontend/zh_normalization
+from .zh_normalization import TextNormalizer
 from .cfg import SPEAKER_DIR
 
 def openweb(url):
     time.sleep(3)
     webbrowser.open(url)
 
-# 数字转为中文读法
-def num_to_chinese(num):
-    num_str = str(num)
-    chinese_digits = "零一二三四五六七八九"
-    units = ["", "十", "百", "千"]
-    big_units = ["", "万", "亿", "兆"]
-    result = ""
-    zero_flag = False  # 标记是否需要加'零'
-    part = []  # 存储每4位的数字
-    
-    # 将数字按每4位分组
-    while num_str:
-        part.append(num_str[-4:])
-        num_str = num_str[:-4]
-    
-    for i in range(len(part)):
-        part_str = ""
-        part_zero_flag = False
-        for j in range(len(part[i])):
-            digit = int(part[i][j])
-            if digit == 0:
-                part_zero_flag = True
-            else:
-                if part_zero_flag or (zero_flag and i > 0 and not result.startswith(chinese_digits[0])):
-                    part_str += chinese_digits[0]
-                    zero_flag = False
-                    part_zero_flag = False
-                part_str += chinese_digits[digit] + units[len(part[i]) - j - 1]
-        if part_str.endswith("零"):
-            part_str = part_str[:-1]  # 去除尾部的'零'
-        if part_str:
-            zero_flag = True
-        
-        if i > 0 and not set(part[i]) <= {'0'}:  # 如果当前部分不全是0，则加上相应的大单位
-            result = part_str + big_units[i] + result
-        else:
-            result = part_str + result
-    
-    # 处理输入为0的情况或者去掉开头的零
-    result = result.lstrip(chinese_digits[0])
-    if not result:
-        return chinese_digits[0]
-    
-    return result
+
 
 # 数字转为英文读法
 def num_to_english(num):
@@ -135,25 +94,15 @@ def fraction_to_words(match):
 
 
 
-# 数字转为中英文读法
+# 数字转为英文读法
 def num2text(text):
-    lang=get_lang(text)
-    if lang=='zh':
-        numtext=['零','一','二','三','四','五','六','七','八','九']
-        point='点'
-        
-        text = re.sub(r'(\d+)\s*\+', r'\1 加', text)
-        text = re.sub(r'(\d+)\s*\-', r'\1 减', text)
-        text = re.sub(r'(\d+)\s*[\*x]', r'\1 乘', text)
-        text = re.sub(r'((?:\d+\.)?\d+)\s*/\s*(\d+)', r'\2分之\1', text)
-
-    else:
-        numtext=[' zero ',' one ',' two ',' three ',' four ',' five ',' six ',' seven ',' eight ',' nine ']
-        point=' point '
-        text = re.sub(r'(\d+)\s*\+', r'\1 plus ', text)
-        text = re.sub(r'(\d+)\s*\-', r'\1 minus ', text)
-        text = re.sub(r'(\d+)\s*[\*x]', r'\1 times ', text)
-        text = re.sub(r'((?:\d+\.)?\d+)\s*/\s*(\d+)', fraction_to_words, text)
+    numtext=[' zero ',' one ',' two ',' three ',' four ',' five ',' six ',' seven ',' eight ',' nine ']
+    point=' point '
+    text = re.sub(r'(\d)\,(\d)', r'\1\2', text)
+    text = re.sub(r'(\d+)\s*\+', r'\1 plus ', text)
+    text = re.sub(r'(\d+)\s*\-', r'\1 minus ', text)
+    text = re.sub(r'(\d+)\s*[\*x]', r'\1 times ', text)
+    text = re.sub(r'((?:\d+\.)?\d+)\s*/\s*(\d+)', fraction_to_words, text)
 
     # 取出数字 number_list= [('1000200030004000.123', '1000200030004000', '123'), ('23425', '23425', '')]
     number_list=re.findall('((\d+)(?:\.(\d+))?%?)',text)
@@ -162,14 +111,13 @@ def num2text(text):
         for m,dc in enumerate(number_list):
             if len(dc[1])>16:
                 continue
-            int_text=num_to_chinese(dc[1]) if lang=='zh' else num_to_english(dc[1])
+            int_text= num_to_english(dc[1])
             if len(dc)>2 and dc[2]:
                 int_text+=point+"".join([numtext[int(i)] for i in dc[2]])
             if dc[0][-1]=='%':
-                int_text=('百分之' if lang=='zh'  else ' the pronunciation of ') + int_text
+                int_text=f' the pronunciation of  {int_text}'
             text=text.replace(dc[0],int_text)
-    if lang=='zh':
-        return text.replace('1','一').replace('2','二').replace('3','三').replace('4','四').replace('5','五').replace('6','六').replace('7','七').replace('8','八').replace('9','九').replace('0','零').replace('+','加').replace('÷','除以').replace('=','等于')
+
         
     return text.replace('1',' one ').replace('2',' two ').replace('3',' three ').replace('4',' four ').replace('5',' five ').replace('6',' six ').replace('7','seven').replace('8',' eight ').replace('9',' nine ').replace('0',' zero ').replace('=',' equals ')
 
@@ -177,9 +125,13 @@ def num2text(text):
 
 # 中英文数字转换为文字，特殊符号处理
 def split_text(text_list):
+    
+    tx = TextNormalizer()
+    
     result=[]
     for i,text in enumerate(text_list):
-        tmp=num2text(text)
+        tmp="".join(tx.normalize(text)) if get_lang(text)=='zh' else num2text(text)
+        #tmp=num2text(text)
         if len(tmp)>200:
             tmp_res=split_text_by_punctuation(tmp)
             result=result+tmp_res
