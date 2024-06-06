@@ -18,11 +18,9 @@
 https://github.com/jianchang512/ChatTTS-ui/assets/3378335/bd6aaef9-a49a-4a81-803a-91e3320bf808
 
 
+文字数字符号 控制符混杂效果
 
-中英数字混杂效果
-
-https://github.com/jianchang512/ChatTTS-ui/assets/3378335/43370012-68c3-495f-a1be-c58035cbe8dc
-
+https://github.com/jianchang512/ChatTTS-ui/assets/3378335/e2a08ea0-32af-4a30-8880-3a91f6cbea55
 
 
 ## Windows预打包版
