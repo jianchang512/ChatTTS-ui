@@ -3,7 +3,7 @@ import sys,re
 from pathlib import Path
 
 import re
-import utils
+from uilib import utils
 import torch
 import torch._dynamo
 torch._dynamo.config.suppress_errors = True
@@ -65,14 +65,15 @@ chat.load_models(source="local",local_path=CHATTTS_DIR,compile=True if os.getenv
 
 
 
-text="你好啊朋友们,听说今天是个好日子,难道不是吗？"
+text="我有12879651325.68元钱[laugh][laugh]，占全部幻想的56.2%，我的手机号码是12312345678，[laugh]座机是0532-84752563，[1break][1break]现在是2013-5-1，12:14:13计算1+2=3，[uv_break][uv_break]6*7=42？"
+
 prompt='[oral_2][laugh_0][break_0]'
 #
 torch.manual_seed(1111)
 rand_spk = chat.sample_random_speaker()
 
 
-wavs = chat.infer([text], use_decoder=True)
+wavs = chat.infer([text], use_decoder=True,do_text_normalization=False,skip_refine_text=True)
 # 初始化一个空的numpy数组用于之后的合并
 combined_wavdata = np.array([], dtype=wavs[0][0].dtype)  # 确保dtype与你的wav数据类型匹配
 

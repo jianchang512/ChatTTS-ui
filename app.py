@@ -112,6 +112,7 @@ def tts():
     top_k = int(request.form.get("top_k",20))
     skip_refine=0
     is_split=0
+    speed=5
     refine_max_new_token=384
     infer_max_new_token=2048
     text_seed=42
@@ -122,6 +123,10 @@ def tts():
         print(e)
     try:
         text_seed = int(request.form.get("text_seed",42))
+    except Exception as e:
+        print(e)
+    try:
+        speed = int(request.form.get("speed",5))
     except Exception as e:
         print(e)
     try:
@@ -157,8 +162,10 @@ def tts():
     if text_seed>0:
         torch.manual_seed(text_seed)
     print(f'{text_seed=}')
+    print(f'[speed_{speed}]')
     wavs = chat.infer(new_text, use_decoder=True, skip_refine_text=True if int(skip_refine)==1 else False,params_infer_code={
         'spk_emb': rand_spk,
+        'prompt':f'[speed_{speed}]',
         'temperature':temperature,
         'top_P':top_p,
         'top_K':top_k,
