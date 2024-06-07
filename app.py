@@ -206,6 +206,192 @@ def tts():
 
     return jsonify(result_dict)
 
+@app.route('/tts1', methods=['GET', 'POST'])
+def tts1():
+    # 原始字符串
+    text = request.args.get("text","").strip() or request.form.get("text","").strip()
+    prompt = request.form.get("prompt",'')
+    try:  
+# 尝试从 request.args 获取参数  
+        custom_voice_str = request.args.get("custom_voice", "")  
+  
+        # 如果 request.args 中的参数不为空字符串，则尝试转换为整数  
+        if custom_voice_str.strip():  
+            try:  
+                custom_voice = int(custom_voice_str)  
+            except ValueError:  
+                # 如果转换失败，则使用 request.form 中的默认值  
+                custom_voice = int(request.form.get("custom_voice", 0))  
+        else:  
+            # 如果 request.args 中没有参数或为空字符串，则从 request.form 获取  
+            custom_voice = int(request.form.get("custom_voice", 0))  
+  
+        # 现在 custom_voice 已经设置好了
+        if custom_voice > 0:  
+            voice = custom_voice  
+        else:  
+            try:  
+# 尝试从 request.args 获取参数  
+                voice_str = request.args.get("voice", "")  
+  
+                # 如果从 request.args 获取到了非空字符串，则尝试将其转换为整数  
+                if voice_str.strip():  
+                    voice = int(voice_str)  
+                else:  
+                    # 如果没有从 request.args 获取到参数或为空字符串，则从 request.form 获取  
+                    voice = int(request.form.get("voice", 2222))  
+  
+                # 现在 voice 已经设置好了
+            except ValueError:  
+                voice = 2222  
+    except ValueError:  
+    # 如果 "custom" 也不是一个可以转换为整数的值，但在这个情况下我们已经有了一个默认值 0  
+        voice = 2222  
+  
+    print(f'{voice=},{custom_voice=}')
+	
+	
+# 尝试从 request.args 获取参数  
+    temperature_str = request.args.get("temperature", "")  
+    top_p_str = request.args.get("top_p", "")  
+    top_k_str = request.args.get("top_k", "")  
+  
+    # 如果 request.args 中的参数为空字符串，则尝试从 request.form 获取  
+    if not temperature_str.strip():  
+        temperature_str = str(request.form.get("temperature", 0.3))  
+    if not top_p_str.strip():  
+        top_p_str = str(request.form.get("top_p", 0.7))  
+    if not top_k_str.strip():  
+        top_k_str = str(request.form.get("top_k", 20))  
+  
+    # 将字符串转换为相应的数据类型，同时处理可能的异常  
+    try:  
+        temperature = float(temperature_str)  
+        top_p = float(top_p_str)  
+        top_k = int(top_k_str)  
+    except ValueError:  
+        # 如果转换失败，则可以使用默认值或其他错误处理逻辑  
+        temperature = 0.3  
+        top_p = 0.7  
+        top_k = 20  
+  
+    # 现在 temperature, top_p, top_k 已经根据优先级被设置好了
+    skip_refine=0
+    is_split=0
+    refine_max_new_token=384
+    infer_max_new_token=2048
+    try:
+# 尝试从 request.args 获取参数  
+        skip_refine_str = request.args.get("skip_refine", "")  
+        is_split_str = request.args.get("is_split", "")  
+  
+        # 如果 request.args 中的参数为空字符串，则尝试从 request.form 获取  
+        if not skip_refine_str.strip():  
+            skip_refine_str = str(request.form.get("skip_refine", 0))  
+        if not is_split_str.strip():  
+            is_split_str = str(request.form.get("is_split", 0))  
+  
+        # 将字符串转换为相应的数据类型，同时处理可能的异常  
+        try:  
+            skip_refine = int(skip_refine_str)  
+            is_split = int(is_split_str)  
+        except ValueError:  
+            # 如果转换失败，则使用默认值  
+            skip_refine = 0  
+            is_split = 0  
+  
+        # 现在 skip_refine 和 is_split 已经根据优先级被设置好了
+    except Exception as e:
+        print(e)
+    try:
+# 尝试从 request.args 获取参数  
+        refine_max_new_token_str = request.args.get("refine_max_new_token", "")  
+        infer_max_new_token_str = request.args.get("infer_max_new_token", "")  
+  
+        # 如果 request.args 中的参数为空字符串，则尝试从 request.form 获取  
+        if not refine_max_new_token_str.strip():  
+            refine_max_new_token_str = str(request.form.get("refine_max_new_token", 384))  
+        if not infer_max_new_token_str.strip():  
+            infer_max_new_token_str = str(request.form.get("infer_max_new_token", 2048))  
+  
+        # 将字符串转换为相应的数据类型，同时处理可能的异常  
+        try:  
+            refine_max_new_token = int(refine_max_new_token_str)  
+            infer_max_new_token = int(infer_max_new_token_str)  
+        except ValueError:  
+            # 如果转换失败，则使用默认值  
+            refine_max_new_token = 384  
+            infer_max_new_token = 2048  
+  
+        # 现在 refine_max_new_token 和 infer_max_new_token 已经根据优先级被设置好了
+    except Exception as e:
+        print(e)
+    
+    app.logger.info(f"[tts]{text=}\n{voice=},{skip_refine=}\n")
+    if not text:
+        return jsonify({"code": 1, "msg": "text params lost"})
+    # 固定音色
+    rand_spk=utils.load_speaker(voice)
+    if rand_spk is None:    
+        print(f'根据seed={voice}获取随机音色')
+        torch.manual_seed(voice)
+        std, mean = torch.load(f'{CHATTTS_DIR}/asset/spk_stat.pt').chunk(2)
+        #rand_spk = chat.sample_random_speaker()        
+        rand_spk = torch.randn(768) * std + mean
+        # 保存音色
+        utils.save_speaker(voice,rand_spk)
+    else:
+        print(f'固定音色 seed={voice}')
+
+    audio_files = []
+    
+
+    start_time = time.time()
+    
+    # 中英按语言分行
+    text_list=[t.strip() for t in text.split("\n") if t.strip()]
+    new_text=text_list if is_split==0 else utils.split_text(text_list)
+
+    wavs = chat.infer(new_text, use_decoder=True, skip_refine_text=True if int(skip_refine)==1 else False,params_infer_code={
+        'spk_emb': rand_spk,
+        'temperature':temperature,
+        'top_P':top_p,
+        'top_K':top_k,
+        'max_new_token':infer_max_new_token
+    }, params_refine_text= {'prompt': prompt,'max_new_token':refine_max_new_token},do_text_normalization=False)
+
+    end_time = time.time()
+    inference_time = end_time - start_time
+    inference_time_rounded = round(inference_time, 2)
+    print(f"推理时长: {inference_time_rounded} 秒")
+
+    # 初始化一个空的numpy数组用于之后的合并
+    combined_wavdata = np.array([], dtype=wavs[0][0].dtype)  # 确保dtype与你的wav数据类型匹配
+
+    for wavdata in wavs:
+        combined_wavdata = np.concatenate((combined_wavdata, wavdata[0]))
+
+    sample_rate = 24000  # Assuming 24kHz sample rate
+    audio_duration = len(combined_wavdata) / sample_rate
+    audio_duration_rounded = round(audio_duration, 2)
+    print(f"音频时长: {audio_duration_rounded} 秒")
+    
+    
+    filename = datetime.datetime.now().strftime('%H%M%S_') + ".wav"
+    sf.write(WAVS_DIR+'/'+filename, combined_wavdata, 24000)
+
+    audio_files.append({
+         "filename": WAVS_DIR + '/' + filename,
+         "url": f"http://{request.host}/static/wavs/{filename}",
+         "inference_time": inference_time_rounded,
+         "audio_duration": audio_duration_rounded
+     })
+    #result_dict={"code": 0, "msg": "ok", "audio_files": audio_files}
+    #兼容pyVideoTrans接口调用
+    #if len(audio_files)==1:
+    #    result_dict["filename"]=audio_files[0]['filename']
+    #    result_dict["url"]=audio_files[0]['url']
+    return send_file(audio_files[0]['filename'], mimetype='audio/x-wav')
 
 
 
