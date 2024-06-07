@@ -19,6 +19,8 @@ import logging
 from logging.handlers import RotatingFileHandler
 from waitress import serve
 load_dotenv()
+
+
 from random import random
 from modelscope import snapshot_download
 import numpy as np
@@ -33,7 +35,8 @@ CHATTTS_DIR= MODEL_DIR+'/pzc163/chatTTS'
 if not os.path.exists(CHATTTS_DIR+"/config/path.yaml"):
     snapshot_download('pzc163/chatTTS',cache_dir=MODEL_DIR)
 chat = ChatTTS.Chat()
-chat.load_models(source="local",local_path=CHATTTS_DIR, compile=True if os.getenv('compile','true').lower()!='false' else False)
+device=os.getenv('device','default')
+chat.load_models(source="local",local_path=CHATTTS_DIR, device=None if device=='default' else device,compile=True if os.getenv('compile','true').lower()!='false' else False)
 
 # 如果希望从 huggingface.co下载模型，将以下注释删掉。将上方3行内容注释掉
 # 如果已存在则不再下载和检测更新，便于离线内网使用
@@ -88,6 +91,7 @@ def index():
 # params:
 #
 # text:待合成文字
+# prompt：
 # voice：音色
 # custom_voice：自定义音色值
 # skip_refine: 1=跳过refine_text阶段，0=不跳过
@@ -95,45 +99,45 @@ def index():
 # temperature
 # top_p
 # top_k
-# prompt：
+# speed
+# text_seed
+# refine_max_new_token
+# infer_max_new_token
 @app.route('/tts', methods=['GET', 'POST'])
 def tts():
     # 原始字符串
     text = request.args.get("text","").strip() or request.form.get("text","").strip()
-    prompt = request.form.get("prompt",'')
-    try:
-        custom_voice=int(request.form.get("custom_voice",0))
-        voice =  custom_voice if custom_voice>0  else int(request.form.get("voice",2222))
-    except Exception:
-        voice=2222
-    print(f'{voice=},{custom_voice=}')
-    temperature = float(request.form.get("temperature",0.3))
-    top_p = float(request.form.get("top_p",0.7))
-    top_k = int(request.form.get("top_k",20))
-    skip_refine=0
-    is_split=0
-    speed=5
-    refine_max_new_token=384
-    infer_max_new_token=2048
-    text_seed=42
-    try:
-        skip_refine = int(request.form.get("skip_refine",0))
-        is_split = int(request.form.get("is_split",0))
-    except Exception as e:
-        print(e)
-    try:
-        text_seed = int(request.form.get("text_seed",42))
-    except Exception as e:
-        print(e)
-    try:
-        speed = int(request.form.get("speed",5))
-    except Exception as e:
-        print(e)
-    try:
-        refine_max_new_token=int(request.form.get("refine_max_new_token",384))
-        infer_max_new_token=int(request.form.get("infer_max_new_token",2048))
-    except Exception as e:
-        print(e)
+    prompt = request.args.get("prompt","").strip() or request.form.get("prompt",'')
+
+    # 默认值
+    defaults = {
+        "custom_voice": 0,
+        "voice": 2222,
+        "temperature": 0.3,
+        "top_p": 0.7,
+        "top_k": 20,
+        "skip_refine": 0,
+        "speed":5,
+        "text_seed":42,
+        "is_split": 0,
+        "refine_max_new_token": 384,
+        "infer_max_new_token": 2048,
+    }
+
+    # 获取
+    custom_voice = utils.get_parameter(request, "custom_voice", defaults["custom_voice"], int)
+    voice = custom_voice if custom_voice > 0 else utils.get_parameter(request, "voice", defaults["voice"], int)
+    temperature = utils.get_parameter(request, "temperature", defaults["temperature"], float)
+    top_p = utils.get_parameter(request, "top_p", defaults["top_p"], float)
+    top_k = utils.get_parameter(request, "top_k", defaults["top_k"], int)
+    skip_refine = utils.get_parameter(request, "skip_refine", defaults["skip_refine"], int)
+    is_split = utils.get_parameter(request, "is_split", defaults["is_split"], int)
+    speed = utils.get_parameter(request, "speed", defaults["speed"], int)
+    text_seed = utils.get_parameter(request, "text_seed", defaults["text_seed"], int)
+    refine_max_new_token = utils.get_parameter(request, "refine_max_new_token", defaults["refine_max_new_token"], int)
+    infer_max_new_token = utils.get_parameter(request, "infer_max_new_token", defaults["infer_max_new_token"], int)
+        
+        
     
     app.logger.info(f"[tts]{text=}\n{voice=},{skip_refine=}\n")
     if not text:
@@ -199,6 +203,11 @@ def tts():
         "audio_duration": audio_duration_rounded
     })
     result_dict={"code": 0, "msg": "ok", "audio_files": audio_files}
+    try:
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+    except Exception:
+        pass
     # 兼容pyVideoTrans接口调用
     if len(audio_files)==1:
         result_dict["filename"]=audio_files[0]['filename']

@@ -12,6 +12,16 @@ def openweb(url):
     time.sleep(3)
     webbrowser.open(url)
 
+def get_parameter(request, param, default, cast_type):
+    #  先request.args 后request.form 然后转换cast_type=int|float类型。
+    for method in [request.args.get, request.form.get]:
+        value = method(param, "").strip()
+        if value:
+            try:
+                return cast_type(value)
+            except ValueError:
+                break  # args转换失败，退出尝试form
+    return default  # 失败，返回默认值。
 
 
 # 数字转为英文读法
@@ -144,8 +154,8 @@ def split_text(text_list):
 def split_text_by_punctuation(text):
     # 定义长度限制
     min_length = 150
-    punctuation_marks = "。？！，、；：“”‘’》」』）】…—"
-    english_punctuation = ".?!,:;\"')}…"
+    punctuation_marks = "。？！，、；：”’》」』）】…—"
+    english_punctuation = ".?!,:;)}…"
     
     # 结果列表
     result = []
