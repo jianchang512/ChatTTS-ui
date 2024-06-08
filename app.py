@@ -28,7 +28,9 @@ import time
 import threading
 from uilib.cfg import WEB_ADDRESS, SPEAKER_DIR, LOGS_DIR, WAVS_DIR, MODEL_DIR, ROOT_DIR
 from uilib import utils,VERSION
-
+from flask import Flask, send_file
+import io
+import wave
 CHATTTS_DIR= MODEL_DIR+'/pzc163/chatTTS'
 # 默认从 modelscope 下载模型,如果想从huggingface下载模型，请将以下代码注释掉
 # 如果已存在则不再下载和检测更新，便于离线内网使用
@@ -103,6 +105,7 @@ def index():
 # text_seed
 # refine_max_new_token
 # infer_max_new_token
+# wav
 @app.route('/tts', methods=['GET', 'POST'])
 def tts():
     # 原始字符串
@@ -122,6 +125,7 @@ def tts():
         "is_split": 0,
         "refine_max_new_token": 384,
         "infer_max_new_token": 2048,
+        "wav": 0,
     }
 
     # 获取
@@ -136,6 +140,7 @@ def tts():
     text_seed = utils.get_parameter(request, "text_seed", defaults["text_seed"], int)
     refine_max_new_token = utils.get_parameter(request, "refine_max_new_token", defaults["refine_max_new_token"], int)
     infer_max_new_token = utils.get_parameter(request, "infer_max_new_token", defaults["infer_max_new_token"], int)
+    wav = utils.get_parameter(request, "wav", defaults["wav"], int)
         
         
     
@@ -213,7 +218,10 @@ def tts():
         result_dict["filename"]=audio_files[0]['filename']
         result_dict["url"]=audio_files[0]['url']
 
-    return jsonify(result_dict)
+    if wav>0:
+        return send_file(audio_files[0]['filename'], mimetype='audio/x-wav')
+    else:
+        return jsonify(result_dict)
 
 
 
