@@ -9,7 +9,8 @@ A simple local web interface to use ChatTTS for text-to-speech synthesis on the 
 
 **Interface Preview**
 
-![image](https://github.com/jianchang512/ChatTTS-ui/assets/3378335/669876cf-5061-4d7d-86c5-3333d0882ee8)
+![image](https://github.com/jianchang512/ChatTTS-ui/assets/3378335/8d9b36d4-29b9-4cd7-ae70-3e3bd3225108)
+
 
 Sample synthesized voice effects
 
