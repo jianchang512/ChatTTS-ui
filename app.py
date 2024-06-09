@@ -2,6 +2,7 @@ import os
 import re
 import sys
 from pathlib import Path
+print('Starting...')
 import torch
 import torch._dynamo
 torch._dynamo.config.suppress_errors = True
@@ -28,12 +29,28 @@ import time
 import threading
 from uilib.cfg import WEB_ADDRESS, SPEAKER_DIR, LOGS_DIR, WAVS_DIR, MODEL_DIR, ROOT_DIR
 from uilib import utils,VERSION
+from uilib.utils import is_chinese_os,modelscope_status
+
+is_cn=is_chinese_os()
 
 CHATTTS_DIR= MODEL_DIR+'/pzc163/chatTTS'
-# 默认从 modelscope 下载模型,如果想从huggingface下载模型，请将以下代码注释掉
+# 默认从 modelscope 下载模型
 # 如果已存在则不再下载和检测更新，便于离线内网使用
-if not os.path.exists(CHATTTS_DIR+"/config/path.yaml"):
-    snapshot_download('pzc163/chatTTS',cache_dir=MODEL_DIR)
+if not os.path.exists(CHATTTS_DIR+"/config/path.yaml") and not os.path.exists(MODEL_DIR+'/models--2Noise--ChatTTS'):
+    # 可连接modelscope
+    if modelscope_status():
+        print('modelscope ok')
+        snapshot_download('pzc163/chatTTS',cache_dir=MODEL_DIR)
+    else:
+        print('from huggingface')
+        CHATTTS_DIR=MODEL_DIR+'/models--2Noise--ChatTTS'
+        import huggingface_hub
+        os.environ['HF_HUB_CACHE']=MODEL_DIR
+        os.environ['HF_ASSETS_CACHE']=MODEL_DIR
+        huggingface_hub.snapshot_download(cache_dir=MODEL_DIR,repo_id="2Noise/ChatTTS", allow_patterns=["*.pt", "*.yaml"])
+  
+#print(f'{is_cn=}')  
+#exit()       
 chat = ChatTTS.Chat()
 device=os.getenv('device','default')
 chat.load_models(source="local",local_path=CHATTTS_DIR, device=None if device=='default' else device,compile=True if os.getenv('compile','true').lower()!='false' else False)
@@ -83,7 +100,7 @@ def static_files(filename):
 
 @app.route('/')
 def index():
-    return render_template("index.html",weburl=WEB_ADDRESS,version=VERSION)
+    return render_template(f"index{'' if is_cn else 'en'}.html",weburl=WEB_ADDRESS,version=VERSION)
 
 
 # 根据文本返回tts结果，返回 filename=文件名 url=可下载地址
@@ -229,7 +246,7 @@ def clear_wavs():
 
 try:
     host = WEB_ADDRESS.split(':')
-    print(f'启动:{WEB_ADDRESS}')
+    print(f'Start:{WEB_ADDRESS}')
     threading.Thread(target=utils.openweb,args=(f'http://{WEB_ADDRESS}',)).start()
     serve(app,host=host[0], port=int(host[1]))
 except Exception as e:

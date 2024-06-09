@@ -1,15 +1,18 @@
+[English README](README_EN.md) | [Discord交流群](https://discord.gg/5FEFEu8qgn) | [打赏项目](https://github.com/jianchang512/ChatTTS-ui/issues/122)
+
 # ChatTTS webUI & API 
 
-一个简单的本地网页界面，直接在网页使用 [ChatTTS](https://github.com/2noise/chattts) 将文字合成为语音，支持中英文、数字混杂，并提供API接口。
+一个简单的本地网页界面，在网页使用 ChatTTS 将文字合成为语音，支持中英文、数字混杂，并提供API接口。
 
-[Releases中可下载Windows整合包](https://github.com/jianchang512/ChatTTS-ui/releases)。
+> 原始[ChatTTS](https://github.com/2noise/chattts)项目
 
 
 
-> 界面预览
->
-> ![image](https://github.com/jianchang512/ChatTTS-ui/assets/3378335/669876cf-5061-4d7d-86c5-3333d0882ee8)
->
+
+**界面预览**
+
+![image](https://github.com/jianchang512/ChatTTS-ui/assets/3378335/669876cf-5061-4d7d-86c5-3333d0882ee8)
+
 
 
 试听合成语音效果
@@ -202,27 +205,7 @@ https://github.com/jianchang512/ChatTTS-ui/assets/3378335/e2a08ea0-32af-4a30-888
 
 2. Windows或Linux下如果显存大于4G并且是英伟达显卡，但源码部署后仍使用CPU，可尝试先卸载torch再重装，卸载`pip uninstall -y torch torchaudio` , 重新安装cuda版torch。`pip install torch==2.2.0 torchaudio==2.2.0 --index-url https://download.pytorch.org/whl/cu118`  。必须已安装CUDA11.8+
 
-3. 注意 modelscope 仅允许中国大陆ip下载模型，如果遇到 proxy 类错误，请关闭代理。如果你希望从 huggingface.co 下载模型，请打开 `app.py` 查看大约第34行-50行的注释。
-
-
-```
-
-# 默认从 modelscope 下载模型,如果想从huggingface下载模型，请将以下3行注释掉
-CHATTTS_DIR = snapshot_download('pzc163/chatTTS',cache_dir=MODEL_DIR)
-chat = ChatTTS.Chat()
-# 通过将 .env中 compile设为false，禁用推理优化. 其他为启用。一定情况下通过禁用，能提高GPU效率
-chat.load_models(source="local",local_path=CHATTTS_DIR, compile=True if os.getenv('compile','true').lower()!='false' else False)
-
-# 如果希望从 huggingface.co下载模型，将以下注释删掉。将上方3行内容注释掉
-
-# import huggingface_hub
-# os.environ['HF_HUB_CACHE']=MODEL_DIR
-# os.environ['HF_ASSETS_CACHE']=MODEL_DIR
-# CHATTTS_DIR = huggingface_hub.snapshot_download(cache_dir=MODEL_DIR,repo_id="2Noise/ChatTTS", allow_patterns=["*.pt", "*.yaml"])
-# chat = ChatTTS.Chat()
-# chat.load_models(source="local",local_path=CHATTTS_DIR, compile=True if os.getenv('compile','true').lower()!='false' else False)
-
-```
+3. 默认检测 modelscope 是否可连接，如果可以，则从modelscope下载模型，否则从 huggingface.co下载模型
 
 
 ## [常见问题与报错解决方法](faq.md)
