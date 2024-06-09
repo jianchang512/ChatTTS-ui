@@ -1,15 +1,18 @@
+[Discord交流群](https://discord.gg/5FEFEu8qgn) | [打赏项目](https://github.com/jianchang512/ChatTTS-ui/issues/122)
+
 # ChatTTS webUI & API 
 
-一个简单的本地网页界面，直接在网页使用 [ChatTTS](https://github.com/2noise/chattts) 将文字合成为语音，支持中英文、数字混杂，并提供API接口。
+一个简单的本地网页界面，在网页使用 ChatTTS 将文字合成为语音，支持中英文、数字混杂，并提供API接口。
 
-[Releases中可下载Windows整合包](https://github.com/jianchang512/ChatTTS-ui/releases)。
+> 原始[ChatTTS](https://github.com/2noise/chattts)项目
 
 
 
-> 界面预览
->
-> ![image](https://github.com/jianchang512/ChatTTS-ui/assets/3378335/669876cf-5061-4d7d-86c5-3333d0882ee8)
->
+
+**界面预览**
+
+![image](https://github.com/jianchang512/ChatTTS-ui/assets/3378335/669876cf-5061-4d7d-86c5-3333d0882ee8)
+
 
 
 试听合成语音效果
