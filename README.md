@@ -1,4 +1,6 @@
+
 [English README](README_EN.md) | [Discord交流群](https://discord.gg/5FEFEu8qgn) | [打赏项目](https://github.com/jianchang512/ChatTTS-ui/issues/122)
+
 
 # ChatTTS webUI & API 
 
@@ -8,8 +10,8 @@
 
 
 
-
 **界面预览**
+
 
 ![image](https://github.com/jianchang512/ChatTTS-ui/assets/3378335/669876cf-5061-4d7d-86c5-3333d0882ee8)
 
