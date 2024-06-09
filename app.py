@@ -30,8 +30,13 @@ import threading
 from uilib.cfg import WEB_ADDRESS, SPEAKER_DIR, LOGS_DIR, WAVS_DIR, MODEL_DIR, ROOT_DIR
 from uilib import utils,VERSION
 from uilib.utils import is_chinese_os,modelscope_status
-
-is_cn=is_chinese_os()
+env_lang=os.getenv('lang','')
+if env_lang=='zh':
+    is_cn= True
+elif env_lang=='en':
+    is_cn=False
+else:
+    is_cn=is_chinese_os()
 
 CHATTTS_DIR= MODEL_DIR+'/pzc163/chatTTS'
 # 默认从 modelscope 下载模型
