@@ -1,5 +1,5 @@
 
-[English README](README_EN.md) | [Discord交流群](https://discord.gg/5FEFEu8qgn) | [打赏项目](https://github.com/jianchang512/ChatTTS-ui/issues/122)
+[English README](README_EN.md) | [Discord交流群](https://discord.gg/y9gUweVCCJ) | [打赏项目](https://github.com/jianchang512/ChatTTS-ui/issues/122)
 
 
 # ChatTTS webUI & API 
