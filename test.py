@@ -1,3 +1,14 @@
+
+import requests
+
+try:
+    res=requests.head("https://huggingface.co/")
+    print(res)
+except Exception as e:
+    print(e)
+    
+
+exit()
 import os
 import sys,re
 from pathlib import Path

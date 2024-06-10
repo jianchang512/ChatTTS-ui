@@ -1,4 +1,5 @@
-import os
+import os,sys
+import requests
 import time
 import re
 import webbrowser
@@ -239,3 +240,47 @@ def is_network():
     else:
         return True
     return False
+
+
+
+def is_chinese_os():
+    import subprocess
+    try:
+        import locale
+        # Windows系统
+        if sys.platform.startswith('win'):
+            lang = locale.getdefaultlocale()[0]
+            return lang.startswith('zh_CN') or lang.startswith('zh_TW') or lang.startswith('zh_HK')
+        # macOS系统
+        elif sys.platform == 'darwin':
+            process = subprocess.Popen(['defaults', 'read', '-g', 'AppleLocale'], stdout=subprocess.PIPE)
+            output, error = process.communicate()
+            if error:
+                # 若默认方法出错，则尝试环境变量
+                return os.getenv('LANG', '').startswith('zh_')
+            locale = output.decode().strip()
+            return locale.startswith('zh_')
+        # 类Unix系统
+        elif sys.platform.startswith('linux') or sys.platform.startswith('cygwin'):
+            return os.getenv('LANG', '').startswith('zh_')
+        # 其他系统
+        else:
+            return False
+
+    except Exception as e:
+        # 输出异常到控制台，实际应用中应该使用日志记录异常
+        print(e)
+        return False
+
+
+
+def modelscope_status():
+    #return False
+    try:
+        res=requests.head("https://www.modelscope.cn/")
+        print(res)
+        if res.status_code!=200:
+            return False
+    except Exception as e:
+        return False
+    return True
