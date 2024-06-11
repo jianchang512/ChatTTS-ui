@@ -95,12 +95,6 @@
 						<input id="prompt" class="form-control" data-toggle="tooltip" title="填写prompt，如 [oral_2][laugh_0][break_6]" placeholder="如 [oral_2][laugh_0][break_6]" />
 				</div>
 				
-				<div class="col-1 align-items-center">
-					<div class="form-check" title="如果选中，将把数字转为对应语言文字" data-toggle="tooltip">
-						<input type="checkbox" class="form-check-input" id="is_split" checked>
-						<label class="form-check-label" for="is_split">数字转文本</label>
-					</div>
-				</div>
 				<div class="col-2 align-items-center">
 				  <div class="form-check" title="如果文本中加入了控制符或效果较差，可尝试选中该项" data-toggle="tooltip">
 					<input type="checkbox" class="form-check-input" id="skip_refine">
@@ -206,7 +200,6 @@ $(document).ready(function() {
 				infer_max_new_token:parseInt($('#infer_max_new_token').val()),
 				text_seed:parseInt($(text_seed).val()),
 				skip_refine:$('#skip_refine').prop('checked')?1:0,
-				is_split:$('#is_split').prop('checked')?1:0,
 				custom_voice:custom_voice?parseInt(custom_voice):0
 			};
       $.ajax({
