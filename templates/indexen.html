@@ -95,12 +95,6 @@
             <input id="prompt" class="form-control" data-toggle="tooltip" title="Fill in the prompt, such as [oral_2][laugh_0][break_6]" placeholder="For example [oral_2][laugh_0][break_6]" />
         </div>
         
-        <div class="col-1 align-items-center">
-            <div class="form-check" title="If selected, numbers will be converted to corresponding language text" data-toggle="tooltip">
-                <input type="checkbox" class="form-check-input" id="is_split" checked>
-                <label class="form-check-label" for="is_split">Convert Numbers to Text</label>
-            </div>
-        </div>
         <div class="col-2 align-items-center">
           <div class="form-check" title="If control characters have been added to the text or the effect is poor, you can try selecting this option" data-toggle="tooltip">
             <input type="checkbox" class="form-check-input" id="skip_refine">
@@ -206,7 +200,6 @@ $(document).ready(function() {
 				infer_max_new_token:parseInt($('#infer_max_new_token').val()),
 				text_seed:parseInt($(text_seed).val()),
 				skip_refine:$('#skip_refine').prop('checked')?1:0,
-				is_split:$('#is_split').prop('checked')?1:0,
 				custom_voice:custom_voice?parseInt(custom_voice):0
 			};
       $.ajax({

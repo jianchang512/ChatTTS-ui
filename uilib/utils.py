@@ -8,6 +8,7 @@ import pandas as pd
 # ref: https://github.com/PaddlePaddle/PaddleSpeech/tree/develop/paddlespeech/t2s/frontend/zh_normalization
 from .zh_normalization import TextNormalizer
 from .cfg import SPEAKER_DIR
+from functools import partial
 
 def openweb(url):
     time.sleep(3)
@@ -138,11 +139,27 @@ def num2text(text):
 def split_text(text_list):
     
     tx = TextNormalizer()
-    
+    haserror=False
     result=[]
     for i,text in enumerate(text_list):
-        tmp="".join(tx.normalize(text)) if get_lang(text)=='zh' else num2text(text)
-        #tmp=num2text(text)
+
+        if get_lang(text)=='zh':
+            tmp="".join(tx.normalize(text))
+        elif haserror:
+            tmp=num2text(text)
+        else:
+            try:
+                # 先尝试使用 nemo_text_processing 处理英文
+                from nemo_text_processing.text_normalization.normalize import Normalizer
+                fun = partial(Normalizer(input_case='cased', lang="en").normalize, verbose=False, punct_post_process=True)
+                tmp=fun(text)
+                print(f'使用nemo处理英文ok')
+            except Exception as e:
+                print(f"nemo处理英文失败，改用自定义预处理")
+                print(e)
+                haserror=True
+                tmp=num2text(text)
+
         if len(tmp)>200:
             tmp_res=split_text_by_punctuation(tmp)
             result=result+tmp_res

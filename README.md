@@ -243,7 +243,6 @@ skip_refine:	int|   可选， 默认0， 1=跳过 refine text，0=不跳过
 
 custom_voice:	int|  可选， 默认0，自定义获取音色值时的种子值，需要大于0的整数，如果设置了则以此为准，将忽略 `voice`
 
-is_split: int| 可选，默认 0， 1=将数字转为文本以便正确发音，0=保持不变
 
 **返回:json数据**
 
@@ -270,8 +269,7 @@ res = requests.post('http://127.0.0.1:9966/tts', data={
   "top_p": 0.7,
   "top_k": 20,
   "skip_refine": 0,
-  "custom_voice": 0,
-  "is_split": 1
+  "custom_voice": 0
 })
 print(res.json())
 

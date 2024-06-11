@@ -117,7 +117,6 @@ def index():
 # voice：音色
 # custom_voice：自定义音色值
 # skip_refine: 1=跳过refine_text阶段，0=不跳过
-# is_split: 1=启用中英分词，同时将数字转为对应语言发音，0=不启用
 # temperature
 # top_p
 # top_k
@@ -141,7 +140,6 @@ def tts():
         "skip_refine": 0,
         "speed":5,
         "text_seed":42,
-        "is_split": 0,
         "refine_max_new_token": 384,
         "infer_max_new_token": 2048,
     }
@@ -153,7 +151,6 @@ def tts():
     top_p = utils.get_parameter(request, "top_p", defaults["top_p"], float)
     top_k = utils.get_parameter(request, "top_k", defaults["top_k"], int)
     skip_refine = utils.get_parameter(request, "skip_refine", defaults["skip_refine"], int)
-    is_split = utils.get_parameter(request, "is_split", defaults["is_split"], int)
     speed = utils.get_parameter(request, "speed", defaults["speed"], int)
     text_seed = utils.get_parameter(request, "text_seed", defaults["text_seed"], int)
     refine_max_new_token = utils.get_parameter(request, "refine_max_new_token", defaults["refine_max_new_token"], int)
@@ -184,7 +181,7 @@ def tts():
     
     # 中英按语言分行
     text_list=[t.strip() for t in text.split("\n") if t.strip()]
-    new_text=text_list if is_split==0 else utils.split_text(text_list)
+    new_text=utils.split_text(text_list)
     if text_seed>0:
         torch.manual_seed(text_seed)
     print(f'{text_seed=}')

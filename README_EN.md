@@ -235,7 +235,6 @@ skip_refine: int| Optional, default 0. 1=skip refine text, 0=do not skip.
 
 custom_voice: int| Optional, default 0. Sets a custom seed value for obtaining the voice, must be a positive integer. If set, it will take precedence over `voice`.
 
-is_split: int| Optional, default 0. 1=convert numbers to text for correct pronunciation, 0=remain unchanged.
 
 **Response: JSON**
 
@@ -264,7 +263,6 @@ res = requests.post('http://127.0.0.1:9966/tts', data={
   "top_k": 20,
   "skip_refine": 0,
   "custom_voice": 0,
-  "is_split": 1
 })
 print(res.json())
 
