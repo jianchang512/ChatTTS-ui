@@ -1,5 +1,5 @@
 
-[简体中文](README.md) | [Discord Discussion Group](https://discord.gg/5FEFEu8qgn) | [Support the Project](https://github.com/jianchang512/ChatTTS-ui/issues/122)
+[简体中文](README.md) | [Discord Discussion Group](https://discord.gg/y9gUweVCCJ) | [Support the Project](https://github.com/jianchang512/ChatTTS-ui/issues/122)
 
 # ChatTTS webUI & API 
 
