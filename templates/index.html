@@ -236,6 +236,7 @@ print(res.json())
 					<div class="d-flex align-items-center my-1">
 						<a title="移除显示，不删除wav文件" href="javascripts:;" onclick="$(this).parent().parent().remove()" class="btn btn-close font12 me-2"></a>
 						<audio controls autoplay src="${audio.url}"></audio>
+                                                <a href="${audio.url}" download="${filename}" class="btn btn-success ms-2">下载音频</a>
 					</div>
                     <div class="d-flex align-items-center text-secondary fs-6">
 						<button class="btn btn-info text-light me-2 show-js-btn" data-js-code="${encodeURIComponent(jsCode)}">显示API调用</button>
