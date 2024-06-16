@@ -31,6 +31,7 @@ import time
 import threading
 from uilib.cfg import WEB_ADDRESS, SPEAKER_DIR, LOGS_DIR, WAVS_DIR, MODEL_DIR, ROOT_DIR
 from uilib import utils,VERSION
+from ChatTTS.utils.gpu_utils import select_device
 
 from uilib.utils import is_chinese_os,modelscope_status
 env_lang=os.getenv('lang','')
@@ -108,7 +109,13 @@ def static_files(filename):
 
 @app.route('/')
 def index():
-    return render_template(f"index{'' if is_cn else 'en'}.html",weburl=WEB_ADDRESS,version=VERSION)
+    speakers=utils.get_speakers()
+    return render_template(
+        f"index{'' if is_cn else 'en'}.html",
+        weburl=WEB_ADDRESS,
+        speakers=speakers,
+        version=VERSION
+    )
 
 
 # 根据文本返回tts结果，返回 filename=文件名 url=可下载地址
@@ -137,7 +144,7 @@ def tts():
     # 默认值
     defaults = {
         "custom_voice": 0,
-        "voice": 2222,
+        "voice": "2222",
         "temperature": 0.3,
         "top_p": 0.7,
         "top_k": 20,
@@ -151,7 +158,7 @@ def tts():
 
     # 获取
     custom_voice = utils.get_parameter(request, "custom_voice", defaults["custom_voice"], int)
-    voice = custom_voice if custom_voice > 0 else utils.get_parameter(request, "voice", defaults["voice"], int)
+    voice = str(custom_voice) if custom_voice > 0 else utils.get_parameter(request, "voice", defaults["voice"], str)
     temperature = utils.get_parameter(request, "temperature", defaults["temperature"], float)
     top_p = utils.get_parameter(request, "top_p", defaults["top_p"], float)
     top_k = utils.get_parameter(request, "top_k", defaults["top_k"], int)
@@ -168,17 +175,32 @@ def tts():
     if not text:
         return jsonify({"code": 1, "msg": "text params lost"})
     # 固定音色
-    rand_spk=utils.load_speaker(voice)
+    rand_spk=None
+    # voice可能是 {voice}.csv or {voice}.pt or number
+    seed_path=f'{SPEAKER_DIR}/{voice}'
+    print(f'{voice=}')
+    if voice.endswith('.csv') and os.path.exists(seed_path):
+        rand_spk=utils.load_speaker(voice)
+        print(f'当前使用音色 {seed_path=}')
+    elif voice.endswith('.pt') and os.path.exists(seed_path):
+        #如果.env中未指定设备，则使用 ChatTTS相同算法找设备，否则使用指定设备
+        rand_spk=torch.load(seed_path, map_location=select_device(4096) if device=='default' else torch.device(device))
+        print(f'当前使用音色 {seed_path=}')
+    # 否则 判断是否存在 {voice}.csv
+    elif os.path.exists(f'{SPEAKER_DIR}/{voice}.csv'):
+        rand_spk=utils.load_speaker(voice)
+        print(f'当前使用音色 {SPEAKER_DIR}/{voice}.csv')
+    
     if rand_spk is None:    
-        print(f'根据seed={voice}获取随机音色')
+        print(f'当前使用音色：根据seed={voice}获取随机音色')
+        voice=int(voice) if re.match(r'^\d+$',voice) else 2222
         torch.manual_seed(voice)
         std, mean = torch.load(f'{CHATTTS_DIR}/asset/spk_stat.pt').chunk(2)
-        #rand_spk = chat.sample_random_speaker()        
+        #rand_spk = chat.sample_random_speaker()
         rand_spk = torch.randn(768) * std + mean
         # 保存音色
         utils.save_speaker(voice,rand_spk)
-    else:
-        print(f'固定音色 seed={voice}')
+        
 
     audio_files = []
     
@@ -190,8 +212,7 @@ def tts():
     new_text=utils.split_text(text_list)
     if text_seed>0:
         torch.manual_seed(text_seed)
-    print(f'{text_seed=}')
-    print(f'[speed_{speed}]')
+
     wavs = chat.infer(new_text, use_decoder=True, skip_refine_text=True if int(skip_refine)==1 else False,params_infer_code={
         'spk_emb': rand_spk,
         'prompt':f'[speed_{speed}]',

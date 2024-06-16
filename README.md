@@ -209,6 +209,20 @@ https://github.com/jianchang512/ChatTTS-ui/assets/3378335/e2a08ea0-32af-4a30-888
 
 3. 默认检测 modelscope 是否可连接，如果可以，则从modelscope下载模型，否则从 huggingface.co下载模型
 
+## 音色获取
+
+从 0.92 版本起，支持csv或pt格式的固定音色，下载后保存到软件目录下的  speaker 文件夹中即可
+
+pt文件可从 https://github.com/6drf21e/ChatTTS_Speaker 项目提供的体验链接页面 (https://modelscope.cn/studios/ttwwwaa/ChatTTS_Speaker) 下载。
+
+也可以从此页面 http://ttslist.aiqbh.com/10000cn/  查看试听后将对应音色值填写到 “自定义音色值”文本框中
+
+**不同设备同一音色值seed，最终合成的声音会有差异的，以及同一设备相同音色值，音色也可能会有变化，尤其音调**
+
+
+
+
+
 
 ## [常见问题与报错解决方法](faq.md)
 
@@ -229,7 +243,7 @@ https://github.com/jianchang512/ChatTTS-ui/assets/3378335/e2a08ea0-32af-4a30-888
 
 text:	str| 必须， 要合成语音的文字
 
-voice:	int| 可选，默认 2222,  决定音色的数字， 2222 | 7869 | 6653 | 4099 | 5099，可选其一，或者任意传入将随机使用音色
+voice:	可选，默认 2222,  决定音色的数字， 2222 | 7869 | 6653 | 4099 | 5099，可选其一，或者任意传入将随机使用音色
 
 prompt:	str| 可选，默认 空， 设定 笑声、停顿，例如 [oral_2][laugh_0][break_6]
 
