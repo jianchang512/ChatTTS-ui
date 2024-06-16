@@ -12,7 +12,10 @@ from functools import partial
 
 def openweb(url):
     time.sleep(3)
-    webbrowser.open(url)
+    try:
+        webbrowser.open(url)
+    except Exception:
+        pass
 
 def get_parameter(request, param, default, cast_type):
     #  先request.args 后request.form 然后转换cast_type=int|float类型。
@@ -234,7 +237,7 @@ def save_speaker(name, tensor):
 # 加载音色
 # 参考 https://github.com/craii/ChatTTS_WebUI/blob/main/utils.py
 def load_speaker(name):
-    speaker_path = f"{SPEAKER_DIR}/{name}.csv"
+    speaker_path = f"{SPEAKER_DIR}/{name}.csv" if not name.endswith('.csv') else f"{SPEAKER_DIR}/{name}"
     if not os.path.exists(speaker_path):
         return None
     try:
@@ -246,6 +249,14 @@ def load_speaker(name):
         return None
     return tensor
 
+
+# 获取 speaker_dir下的所有csv pt文件
+def get_speakers():
+    result=[]
+    for it in os.listdir(SPEAKER_DIR):
+        if it.endswith('.csv') or it.endswith('.pt'):
+            result.append(it)
+    return result
 
 # 判断是否可以连接外网
 def is_network():

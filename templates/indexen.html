@@ -61,25 +61,9 @@
         <div class="col align-items-center input-group">
             <span class="input-group-text">Select Voice</span>
             <select id="voice" class="form-control">
-                <option value="11">Male(11)</option>
-                <option value="12">Male(12)</option>
-                <option value="16">Male(16)</option>
-                <option value="2222">Male(2222)</option>
-                <option value="4444">Male(4444)</option>
-                <option value="6653">Male(6653)</option>
-                <option value="7869">Male(7869)</option>
-                <option value="9999">Male(9999)</option>
-                <option value="5">Female(5)</option>
-                <option value="13">Female(13)</option>
-                <option value="14">Female(14)</option>
-                <option value="1111">Female(1111)</option>
-                <option value="3333">Female(3333)</option>
-                <option value="4099">Female(4099)</option>
-                <option value="5099">Female(5099)</option>
-                <option value="5555">Female(5555)</option>
-                <option value="8888">8888</option>
-                <option value="6666">6666</option>
-                <option value="7777">7777</option>
+                {% for speaker in speakers %}
+							<option value="{{speaker}}">{{speaker}}</option>
+						{% endfor %}
             </select>
         </div>
         <div class="col align-items-center input-group">
@@ -191,7 +175,7 @@ $(document).ready(function() {
 			let data={
 				text: text,
 				prompt:$('#prompt').val(),
-				voice:parseInt($('#voice').val()),
+				voice:$('#voice').val(),
 				speed:parseInt($('#speed').val()),
 				temperature:parseFloat($('#temperature').val()),
 				top_p:parseFloat($('#top_p').val()),
