@@ -2,6 +2,8 @@ Flask
 ipython
 modelscope
 numpy==1.26.4
+einops
+tqdm
 omegaconf
 python-dotenv
 requests

@@ -58,6 +58,7 @@ def replace_temperature(match) -> str:
 
 def replace_measure(sentence) -> str:
     for q_notation in measure_dict:
-        if q_notation in sentence:
+        if q_notation in sentence and re.search(f'\d{q_notation}',sentence):
+        
             sentence = sentence.replace(q_notation, measure_dict[q_notation])
     return sentence
