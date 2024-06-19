@@ -107,7 +107,7 @@ class TextNormalizer():
     def _post_replace(self, sentence: str) -> str:
         
     
-        sentence = sentence.replace('/', '每')
+        #sentence = sentence.replace('/', '每')
         sentence = sentence.replace('~', '至')
         sentence = sentence.replace('～', '至')
         sentence = sentence.replace('①', '一')
