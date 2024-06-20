@@ -85,6 +85,12 @@
 					<label class="form-check-label" for="skip_refine">跳过refine text</label>
 				  </div>
 				</div>
+				<div class="col-2 align-items-center d-none">
+				  <div class="form-check" title="是否流式" data-toggle="tooltip">
+					<input type="checkbox" class="form-check-input" id="is_stream">
+					<label class="form-check-label" for="is_stream">流式?</label>
+				  </div>
+				</div>
 			</div>
 		</div>
 		<div class="col-12 my-2 d-flex align-items-center justify-content-between" id="temper_wrap">
@@ -119,8 +125,7 @@
 			<div class="form-group d-flex col align-items-center">
 				<label for="top_k">top_k</label>
 				<input type="range" class="form-control-range" id="top_k" min="1" max="20" step="1" value="20">
-				<span class="w-50px text-secondary font12">20</span>
-				
+				<span class="w-50px text-secondary font12">20</span>				
 			</div>			
 			</div>
 		</div>
@@ -136,6 +141,10 @@
             <div class="m-2 bg-black text-white d-none" id="code"></div>
         </div>
     </div>
+	
+	<div id="stream" class="d-none">
+		<audio controls id="stream_audio"></audio>
+	</div>
 	
 	<div class="text-center my-4">
 		<a class="btn btn-link text-secondary" href="https://github.com/jianchang512/chatTTS-ui" target="_blank">GitHub ChatTTS-UI</a>
@@ -184,8 +193,10 @@ $(document).ready(function() {
 				infer_max_new_token:parseInt($('#infer_max_new_token').val()),
 				text_seed:parseInt($(text_seed).val()),
 				skip_refine:$('#skip_refine').prop('checked')?1:0,
+				is_stream:0,
 				custom_voice:custom_voice?parseInt(custom_voice):0
 			};
+
       $.ajax({
         url: '/tts',
         type: 'POST',
@@ -212,7 +223,8 @@ print(res.json())
 {code:1, msg:"error"}
 `;
 				let n=$('#audio-container > div').length+1;
-                $('#audio-container').prepend(`
+                $('#audio-container').prepend(
+				`
                   <div class="col-12 mb-2 pb-2 border-bottom">
                     <div>						
 						[${n}] ${filename} 
@@ -261,7 +273,7 @@ print(res.json())
 
 
 	$('#upload-btn').click(function() {
-        $('#file-input').click(); // Trigger file input when upload button is clicked
+        $('#file-input').click()
     });
     
     $('#file-input').change(function(e) {
@@ -299,9 +311,44 @@ print(res.json())
     });
   });
 
+	
+	
+
 
 });
+
+
+/*
+let audio_queue=[]
+let audio_el=document.getElementById('stream_audio')
+const eventSource = new EventSource('/streamtts');
+eventSource.onmessage = function(event) {
+	console.log(event);
+	try{
+		let t=JSON.parse(event.data);
+		audio_queue.push(t)
+		if(audio_el.ended || !audio_el.getAttribute('src')){
+			goon_play();
+		}
+	}catch(e){}
+};
+function goon_play(){
+	if(audio_queue.length>0){
+		let t=audio_queue.shift();
+		audio_el.src=t['url']
+		audio_el.play()
+	}
+}
+
+
+
+audio_el.addEventListener("ended", (event) => {
+	goon_play()
+});
+audio_el.addEventListener("waiting", (event) => {
+	goon_play()
+});
+
+*/
 </script>
-
-
 </body></html>

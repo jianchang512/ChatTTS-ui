@@ -2,6 +2,7 @@ import os
 import re
 import sys
 import io
+import json
 import wave
 from pathlib import Path
 print('Starting...')
@@ -17,7 +18,7 @@ import soundfile as sf
 import ChatTTS
 import datetime
 from dotenv import load_dotenv
-from flask import Flask, request, render_template, jsonify,  send_from_directory,send_file
+from flask import Flask, request, render_template, jsonify,  send_from_directory,send_file,Response, stream_with_context
 import logging
 from logging.handlers import RotatingFileHandler
 from waitress import serve
@@ -62,7 +63,7 @@ if not os.path.exists(CHATTTS_DIR+"/config/path.yaml") and not os.path.exists(MO
 #exit()       
 chat = ChatTTS.Chat()
 device=os.getenv('device','default')
-chat.load_models(source="local",local_path=CHATTTS_DIR, device=None if device=='default' else device,compile=True if os.getenv('compile','true').lower()!='false' else False)
+chat.load_models(source="custom",custom_path=CHATTTS_DIR, device=None if device=='default' else device,compile=True if os.getenv('compile','true').lower()!='false' else False)
 
 # 如果希望从 huggingface.co下载模型，将以下注释删掉。将上方3行内容注释掉
 # 如果已存在则不再下载和检测更新，便于离线内网使用
@@ -135,8 +136,12 @@ def index():
 # refine_max_new_token
 # infer_max_new_token
 # wav
+
+audio_queue=[]
+
 @app.route('/tts', methods=['GET', 'POST'])
 def tts():
+    global audio_queue
     # 原始字符串
     text = request.args.get("text","").strip() or request.form.get("text","").strip()
     prompt = request.args.get("prompt","").strip() or request.form.get("prompt",'')
@@ -154,6 +159,7 @@ def tts():
         "refine_max_new_token": 384,
         "infer_max_new_token": 2048,
         "wav": 0,
+        "is_stream":0
     }
 
     # 获取
@@ -163,6 +169,7 @@ def tts():
     top_p = utils.get_parameter(request, "top_p", defaults["top_p"], float)
     top_k = utils.get_parameter(request, "top_k", defaults["top_k"], int)
     skip_refine = utils.get_parameter(request, "skip_refine", defaults["skip_refine"], int)
+    is_stream = utils.get_parameter(request, "is_stream", defaults["is_stream"], int)
     speed = utils.get_parameter(request, "speed", defaults["speed"], int)
     text_seed = utils.get_parameter(request, "text_seed", defaults["text_seed"], int)
     refine_max_new_token = utils.get_parameter(request, "refine_max_new_token", defaults["refine_max_new_token"], int)
@@ -213,14 +220,9 @@ def tts():
     if text_seed>0:
         torch.manual_seed(text_seed)
 
-    wavs = chat.infer(new_text, use_decoder=True, skip_refine_text=True if int(skip_refine)==1 else False,params_infer_code={
-        'spk_emb': rand_spk,
-        'prompt':f'[speed_{speed}]',
-        'temperature':temperature,
-        'top_P':top_p,
-        'top_K':top_k,
-        'max_new_token':infer_max_new_token
-    }, params_refine_text= {'prompt': prompt,'max_new_token':refine_max_new_token},do_text_normalization=False)
+    wavs = chat.infer(new_text, use_decoder=True,stream=True if is_stream==1 else False)
+    combined_wavdata=None
+
 
     end_time = time.time()
     inference_time = end_time - start_time
@@ -263,7 +265,6 @@ def tts():
         return send_file(audio_files[0]['filename'], mimetype='audio/x-wav')
     else:
         return jsonify(result_dict)
-
 
 
 
