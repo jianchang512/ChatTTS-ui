@@ -2,14 +2,20 @@ Flask
 ipython
 modelscope
 numpy==1.26.4
+numba
 einops
 tqdm
-omegaconf
+omegaconf>=2.3.0
+torch>=2.1.0
 python-dotenv
 requests
 soundfile
 tokenizers
-transformers
+transformers>=4.41.1
 vector-quantize-pytorch
 vocos
 waitress
+pybase16384
+pynini==2.1.5; sys_platform == 'linux'
+WeTextProcessing; sys_platform == 'linux'
+nemo_text_processing; sys_platform == 'linux'

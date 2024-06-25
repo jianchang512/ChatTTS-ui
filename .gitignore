@@ -18,3 +18,5 @@ pack.bat
 gitcmd.bat
 logs
 poetry.lock
+docs
+examples

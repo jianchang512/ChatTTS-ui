@@ -1,12 +1,15 @@
 import os
 import re
 import sys
+if sys.platform == "darwin":
+    os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
 import io
 import json
 import wave
 from pathlib import Path
 print('Starting...')
 import torch
+
 import torch._dynamo
 torch._dynamo.config.suppress_errors = True
 torch._dynamo.config.cache_size_limit = 64
@@ -24,7 +27,6 @@ from logging.handlers import RotatingFileHandler
 from waitress import serve
 load_dotenv()
 
-
 from random import random
 from modelscope import snapshot_download
 import numpy as np
@@ -33,6 +35,8 @@ import threading
 from uilib.cfg import WEB_ADDRESS, SPEAKER_DIR, LOGS_DIR, WAVS_DIR, MODEL_DIR, ROOT_DIR
 from uilib import utils,VERSION
 from ChatTTS.utils.gpu_utils import select_device
+
+
 
 from uilib.utils import is_chinese_os,modelscope_status
 env_lang=os.getenv('lang','')
@@ -59,11 +63,10 @@ if not os.path.exists(CHATTTS_DIR+"/config/path.yaml") and not os.path.exists(MO
         os.environ['HF_ASSETS_CACHE']=MODEL_DIR
         huggingface_hub.snapshot_download(cache_dir=MODEL_DIR,repo_id="2Noise/ChatTTS", allow_patterns=["*.pt", "*.yaml"])
   
-#print(f'{is_cn=}')  
-#exit()       
+
 chat = ChatTTS.Chat()
 device=os.getenv('device','default')
-chat.load_models(source="custom",custom_path=CHATTTS_DIR, device=None if device=='default' else device,compile=True if os.getenv('compile','true').lower()!='false' else False)
+chat.load(source="custom",custom_path=CHATTTS_DIR, device=None if device=='default' else device,compile=True if os.getenv('compile','true').lower()!='false' else False)
 
 # 如果希望从 huggingface.co下载模型，将以下注释删掉。将上方3行内容注释掉
 # 如果已存在则不再下载和检测更新，便于离线内网使用
@@ -74,7 +77,7 @@ chat.load_models(source="custom",custom_path=CHATTTS_DIR, device=None if device=
     #os.environ['HF_ASSETS_CACHE']=MODEL_DIR
     #huggingface_hub.snapshot_download(cache_dir=MODEL_DIR,repo_id="2Noise/ChatTTS", allow_patterns=["*.pt", "*.yaml"])
     # chat = ChatTTS.Chat()
-    # chat.load_models(source="local",local_path=CHATTTS_DIR, compile=True if os.getenv('compile','true').lower()!='false' else False)
+    # chat.load(source="local",local_path=CHATTTS_DIR, compile=True if os.getenv('compile','true').lower()!='false' else False)
 
 
 # 配置日志
@@ -219,8 +222,37 @@ def tts():
     new_text=utils.split_text(text_list)
     if text_seed>0:
         torch.manual_seed(text_seed)
+    
+    
+    params_infer_code = ChatTTS.Chat.InferCodeParams(
+        spk_emb=rand_spk,
+        prompt=f"[speed_{speed}]",
+        top_P=top_p,
+        top_K=top_k,
+        temperature=temperature,
+        max_new_token=infer_max_new_token
+    )
+    params_refine_text = ChatTTS.Chat.RefineTextParams(
+        prompt=prompt,
+        top_P=top_p,
+        top_K=top_k,
+        temperature=temperature,
+        max_new_token=refine_max_new_token
+    )
 
-    wavs = chat.infer(new_text, use_decoder=True,stream=True if is_stream==1 else False)
+    
+    
+    wavs = chat.infer(
+        new_text, 
+        use_decoder=True,
+        stream=True if is_stream==1 else False,
+        skip_refine_text=skip_refine,
+        do_text_normalization=False,
+        do_homophone_replacement=True,
+        params_refine_text=params_refine_text,
+        params_infer_code=params_infer_code
+        
+        )
     combined_wavdata=None
 
 
