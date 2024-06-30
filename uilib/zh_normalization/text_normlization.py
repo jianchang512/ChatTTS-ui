@@ -60,7 +60,7 @@ class TextNormalizer():
             text (str): The input text.
         Returns:
             List[str]: Sentences.
-            
+
             character_map = {
     "：": "，",
     "；": "，",
@@ -105,8 +105,8 @@ class TextNormalizer():
         return sentences
 
     def _post_replace(self, sentence: str) -> str:
-        
-    
+
+
         #sentence = sentence.replace('/', '每')
         sentence = sentence.replace('~', '至')
         sentence = sentence.replace('～', '至')
@@ -146,8 +146,8 @@ class TextNormalizer():
         sentence = sentence.replace('ψ', '普赛').replace('Ψ', '普赛')
         sentence = sentence.replace('ω', '欧米伽').replace('Ω', '欧米伽')
         sentence = sentence.replace('+', '加')
-        
-        
+
+
         # re filter special characters, have one more character "-" than line 68
         sentence = re.sub(r'[-——《》【】<=>{}()（）#&@“”^|…\\]', '', sentence)
         return sentence
@@ -161,12 +161,12 @@ class TextNormalizer():
         result = ""
         zero_flag = False  # 标记是否需要加'零'
         part = []  # 存储每4位的数字
-        
+
         # 将数字按每4位分组
         while num_str:
             part.append(num_str[-4:])
             num_str = num_str[:-4]
-        
+
         for i in range(len(part)):
             part_str = ""
             part_zero_flag = False
@@ -184,21 +184,21 @@ class TextNormalizer():
                 part_str = part_str[:-1]  # 去除尾部的'零'
             if part_str:
                 zero_flag = True
-            
+
             if i > 0 and not set(part[i]) <= {'0'}:  # 如果当前部分不全是0，则加上相应的大单位
                 result = part_str + big_units[i] + result
             else:
                 result = part_str + result
-        
+
         # 处理输入为0的情况或者去掉开头的零
         result = result.lstrip(chinese_digits[0])
         if not result:
             return chinese_digits[0]
-        
+
         return result
 
     def normalize_sentence(self, sentence: str) -> str:
-        
+
         # basic character conversions
         # add
         sentence = re.sub(r'(\d+)\s*[\*xX]\s*(\d+)', r'\1 乘 \2', sentence,re.I)
@@ -207,12 +207,12 @@ class TextNormalizer():
         sentence = re.sub(r'(0\d+)\-(\d{3,})', r'\1杠\2', sentence,re.I)
         sentence = sentence.replace('=', '等于')
         sentence = sentence.replace('÷','除以')
-        
+
         #sentence = re.sub(r'(\d+)\s*\-', r'\1 减', sentence)
         sentence = re.sub(r'((?:\d+\.)?\d+)\s*/\s*(\d+)', r'\2分之\1', sentence)
-        
+
         # 取出数字 number_list= [('1000200030004000.123', '1000200030004000', '123'), ('23425', '23425', '')]
-        number_list=re.findall('((\d+)(?:\.(\d+))?%?)',sentence)
+        number_list=re.findall(r'((\d+)(?:\.(\d+))?%?)', sentence)
         numtext=['零','一','二','三','四','五','六','七','八','九']
         if len(number_list)>0:
             #dc= ('1000200030004000.123', '1000200030004000', '123','')
@@ -227,8 +227,7 @@ class TextNormalizer():
                 if dc[0][-1]=='%':
                     int_text=f'百分之{int_text}'
                 sentence=sentence.replace(dc[0],int_text)
-        
-        
+
         sentence = tranditional_to_simplified(sentence)
         sentence = sentence.translate(F2H_ASCII_LETTERS).translate(
             F2H_DIGITS).translate(F2H_SPACE)
@@ -258,7 +257,7 @@ class TextNormalizer():
         sentence = RE_DEFAULT_NUM.sub(replace_default_num, sentence)
         sentence = RE_NUMBER.sub(replace_number, sentence)
         sentence = self._post_replace(sentence)
-        
+
         sentence = sentence.replace('[一break]','[1break]')
 
         return sentence
