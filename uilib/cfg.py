@@ -28,6 +28,13 @@ SPEAKER_DIR_PATH=Path(ROOT_DIR+"/speaker")
 SPEAKER_DIR_PATH.mkdir(parents=True, exist_ok=True)
 SPEAKER_DIR=SPEAKER_DIR_PATH.as_posix()
 
+# ffmpeg
+if sys.platform == 'win32':
+    os.environ['PATH'] = ROOT_DIR + f';{ROOT_DIR}/ffmpeg;' + os.environ['PATH']
+
+else:
+    os.environ['PATH'] = ROOT_DIR + f':{ROOT_DIR}/ffmpeg:' + os.environ['PATH']
+
 
 # 读取 .env 变量
 WEB_ADDRESS = os.getenv('WEB_ADDRESS', '127.0.0.1:9966')

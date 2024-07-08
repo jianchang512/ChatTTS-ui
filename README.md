@@ -1,13 +1,18 @@
 
-[English README](README_EN.md) | [获取音色](https://github.com/jianchang512/ChatTTS-ui/tree/v0.92?tab=readme-ov-file#%E9%9F%B3%E8%89%B2%E8%8E%B7%E5%8F%96)  | [Discord交流群](https://discord.gg/y9gUweVCCJ) | [打赏项目](https://github.com/jianchang512/ChatTTS-ui/issues/122)
+[English README](README_EN.md) | [打赏项目](https://github.com/jianchang512/ChatTTS-ui/issues/122) | [Discord Discussion Group](https://discord.gg/y9gUweVCCJ)
 
 
 # ChatTTS webUI & API 
 
-一个简单的本地网页界面，在网页使用 ChatTTS 将文字合成为语音，支持中英文、数字混杂，并提供API接口。
+一个简单的本地网页界面，在网页使用 ChatTTS 将文字合成为语音，支持中英文、数字混杂，并提供API接口.
+原 [ChatTTS](https://github.com/2noise/chattts) 项目
 
-> 原始[ChatTTS](https://github.com/2noise/chattts)项目
 
+> 0.96版起，源码部署必须先安装ffmpeg 
+>
+> 0.96版起，之前的音色文件csv和pt已不可用，请填写音色值重新生成，或到以下站点下载  
+> 
+> https://modelscope.cn/studios/ttwwwaa/ChatTTS_Speaker
 
 
 **界面预览**
@@ -17,9 +22,7 @@
 
 
 
-试听合成语音效果
 
-https://github.com/jianchang512/ChatTTS-ui/assets/3378335/bd6aaef9-a49a-4a81-803a-91e3320bf808
 
 
 文字数字符号 控制符混杂效果
@@ -96,7 +99,7 @@ https://github.com/jianchang512/ChatTTS-ui/assets/3378335/e2a08ea0-32af-4a30-888
 
 ## Linux 下源码部署
 
-1. 配置好 python3.9-3.11环境
+1. 配置好 python3.9-3.11环境，安装 ffmpeg。 `yum install ffmpeg` 或 `apt-get install ffmpeg`等
 2. 创建空目录 `/data/chattts` 执行命令 `cd /data/chattts &&  git clone https://github.com/jianchang512/chatTTS-ui .`
 3. 创建虚拟环境 `python3 -m venv venv`
 4. 激活虚拟环境 `source ./venv/bin/activate`
@@ -164,6 +167,8 @@ https://github.com/jianchang512/ChatTTS-ui/assets/3378335/e2a08ea0-32af-4a30-888
    继续执行
 
     ```
+	brew install ffmpeg
+	
     export PATH="/usr/local/opt/python@3.10/bin:$PATH"
 	
     source ~/.bash_profile 
@@ -183,12 +188,13 @@ https://github.com/jianchang512/ChatTTS-ui/assets/3378335/e2a08ea0-32af-4a30-888
 ## Windows源码部署
 
 1. 下载python3.9-3.11，安装时注意选中`Add Python to environment variables`
-2. 下载并安装git，https://github.com/git-for-windows/git/releases/download/v2.45.1.windows.1/Git-2.45.1-64-bit.exe 
-3. 创建空文件夹 `D:/chattts` 并进入，地址栏输入 `cmd`回车，在弹出的cmd窗口中执行命令 `git clone https://github.com/jianchang512/chatTTS-ui .`
-4. 创建虚拟环境，执行命令 `python -m venv venv`
-4. 激活虚拟环境，执行 `.\venv\scripts\activate`
-5. 安装依赖,执行 `pip install -r requirements.txt`
-6. 如果不需要CUDA加速，
+2. 下载 ffmpeg.exe 放在 软件目录下的ffmpeg文件夹内
+3. 下载并安装git，https://github.com/git-for-windows/git/releases/download/v2.45.1.windows.1/Git-2.45.1-64-bit.exe 
+4. 创建空文件夹 `D:/chattts` 并进入，地址栏输入 `cmd`回车，在弹出的cmd窗口中执行命令 `git clone https://github.com/jianchang512/chatTTS-ui .`
+5. 创建虚拟环境，执行命令 `python -m venv venv`
+6. 激活虚拟环境，执行 `.\venv\scripts\activate`
+7. 安装依赖,执行 `pip install -r requirements.txt`
+8. 如果不需要CUDA加速，
 
 	执行 `pip install torch==2.2.0 torchaudio==2.2.0`
 
@@ -198,10 +204,10 @@ https://github.com/jianchang512/ChatTTS-ui/assets/3378335/e2a08ea0-32af-4a30-888
 	
 	另需安装 CUDA11.8+ ToolKit，请自行搜索安装方法或参考 https://juejin.cn/post/7318704408727519270
 	
-7. 执行 `python app.py` 启动，将自动打开浏览器窗口，默认地址 `http://127.0.0.1:9966`  (注意：默认从 modelscope 魔塔下载模型，不可使用代理下载，请关闭代理)
+9. 执行 `python app.py` 启动，将自动打开浏览器窗口，默认地址 `http://127.0.0.1:9966`  (注意：默认从 modelscope 魔塔下载模型，不可使用代理下载，请关闭代理)
 
 
-## 部署注意
+## 源码部署注意 0.96版本起，必须安装ffmpeg
 
 1. 如果GPU显存低于4G，将强制使用CPU。
 
@@ -211,11 +217,14 @@ https://github.com/jianchang512/ChatTTS-ui/assets/3378335/e2a08ea0-32af-4a30-888
 
 ## 音色获取
 
-从 0.92 版本起，支持csv或pt格式的固定音色，下载后保存到软件目录下的  speaker 文件夹中即可
+从 0.95 版本起，仅支持pt格式的固定音色，下载后保存到软件目录下的  speaker 文件夹中即可。
+
+并且之前版本的pt或csv文件均不可用，请删除之前的音色文件，然后请填写音色值重新生成。
+
+也可从下面网址重新下载。
 
 pt文件可从 https://github.com/6drf21e/ChatTTS_Speaker 项目提供的体验链接页面 (https://modelscope.cn/studios/ttwwwaa/ChatTTS_Speaker) 下载。
 
-也可以从此页面 http://ttslist.aiqbh.com/10000cn/  查看试听后将对应音色值填写到 “自定义音色值”文本框中
 
 **不同设备同一音色值seed，最终合成的声音会有差异的，以及同一设备相同音色值，音色也可能会有变化，尤其音调**
 

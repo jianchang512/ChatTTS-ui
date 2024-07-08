@@ -1,0 +1,4 @@
+file 'E:/python/chattts/static/wavs/005611_use17.41s-seed1031.pt-te0.3-tp0.7-tk20-textlen54-27988-0.wav'
+file 'E:/python/chattts/static/wavs/005620_use26.56s-seed1031.pt-te0.3-tp0.7-tk20-textlen54-11894-1.wav'
+file 'E:/python/chattts/static/wavs/005634_use40.59s-seed1031.pt-te0.3-tp0.7-tk20-textlen54-22081-2.wav'
+file 'E:/python/chattts/static/wavs/005647_use53.5s-seed1031.pt-te0.3-tp0.7-tk20-textlen54-83730-3.wav'

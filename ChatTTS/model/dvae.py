@@ -154,9 +154,8 @@ class DVAEDecoder(nn.Module):
         )
         self.conv_out = nn.Conv1d(hidden, odim, kernel_size=1, bias=False)
 
-    def forward(self, input: torch.Tensor, conditioning=None) -> torch.Tensor:
-        # B, T, C
-        x = input.transpose_(1, 2)
+    def forward(self, x: torch.Tensor, conditioning=None) -> torch.Tensor:
+        # B, C, T
         y = self.conv_in(x)
         del x
         for f in self.decoder_block:
@@ -164,7 +163,7 @@ class DVAEDecoder(nn.Module):
 
         x = self.conv_out(y)
         del y
-        return x.transpose_(1, 2)
+        return x
 
 
 class DVAE(nn.Module):
@@ -196,26 +195,25 @@ class DVAE(nn.Module):
             self.coef.cpu().numpy().astype(np.float32).tobytes()
         )
 
+    @torch.inference_mode()
     def forward(self, inp: torch.Tensor) -> torch.Tensor:
-        with torch.no_grad():
+        if self.vq_layer is not None:
+            vq_feats = self.vq_layer._embed(inp)
+        else:
+            vq_feats = inp
 
-            if self.vq_layer is not None:
-                vq_feats = self.vq_layer._embed(inp)
-            else:
-                vq_feats = inp.detach().clone()
-
-            vq_feats = (
-                vq_feats.view(
-                    (vq_feats.size(0), 2, vq_feats.size(1) // 2, vq_feats.size(2)),
-                )
-                .permute(0, 2, 3, 1)
-                .flatten(2)
+        vq_feats = (
+            vq_feats.view(
+                (vq_feats.size(0), 2, vq_feats.size(1) // 2, vq_feats.size(2)),
             )
+            .permute(0, 2, 3, 1)
+            .flatten(2)
+        )
 
-            dec_out = self.out_conv(
-                self.decoder(
-                    input=vq_feats.transpose_(1, 2),
-                ).transpose_(1, 2),
-            )
+        dec_out = self.out_conv(
+            self.decoder(
+                x=vq_feats,
+            ),
+        )
 
-            return torch.mul(dec_out, self.coef, out=dec_out)
+        return torch.mul(dec_out, self.coef, out=dec_out)
