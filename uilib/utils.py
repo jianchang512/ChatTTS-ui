@@ -31,7 +31,7 @@ def get_parameter(request, param, default, cast_type):
 
 # 数字转为英文读法
 def num_to_english(num):
-    
+
     num_str = str(num)
     # English representations for numbers 0-9
     english_digits = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"]
@@ -41,29 +41,29 @@ def num_to_english(num):
     need_and = False  # Indicates whether 'and' needs to be added
     part = []  # Stores each group of 4 digits
     is_first_part = True  # Indicates if it is the first part for not adding 'and' at the beginning
-    
+
     # Split the number into 3-digit groups
     while num_str:
         part.append(num_str[-3:])
         num_str = num_str[:-3]
-    
+
     part.reverse()
-    
+
     for i, p in enumerate(part):
         p_str = ""
         digit_len = len(p)
         if int(p) == 0 and i < len(part) - 1:
             continue
-        
+
         hundreds_digit = int(p) // 100 if digit_len == 3 else None
         tens_digit = int(p) % 100 if digit_len >= 2 else int(p[0] if digit_len == 1 else p[1])
-        
+
         # Process hundreds
         if hundreds_digit is not None and hundreds_digit != 0:
             p_str += english_digits[hundreds_digit] + " hundred"
             if tens_digit != 0:
                 p_str += " and "
-        
+
         # Process tens and ones
         if 10 < tens_digit < 20:  # Teens exception
             teen_map = {
@@ -79,17 +79,17 @@ def num_to_english(num):
                 p_str += tens_map[tens_val] + (" " + english_digits[ones_val] if ones_val != 0 else "")
             elif tens_digit != 0 and tens_val < 2:  # When tens_digit is in [1, 9]
                 p_str += english_digits[tens_digit]
-        
+
         if p_str and not is_first_part and need_and:
             result += " and "
         result += p_str
         if i < len(part) - 1 and int(p) != 0:
             result += " " + big_units[len(part) - i - 1] + ", "
-        
+
         is_first_part = False
         if int(p) != 0:
             need_and = True
-    
+
     return result.capitalize()
 
 
@@ -120,8 +120,8 @@ def num2text(text):
     text = re.sub(r'((?:\d+\.)?\d+)\s*/\s*(\d+)', fraction_to_words, text)
 
     # 取出数字 number_list= [('1000200030004000.123', '1000200030004000', '123'), ('23425', '23425', '')]
-    number_list=re.findall('((\d+)(?:\.(\d+))?%?)',text)
-    if len(number_list)>0:            
+    number_list=re.findall(r'((\d+)(?:\.(\d+))?%?)', text)
+    if len(number_list)>0:
         #dc= ('1000200030004000.123', '1000200030004000', '123','')
         for m,dc in enumerate(number_list):
             if len(dc[1])>16:
@@ -133,14 +133,14 @@ def num2text(text):
                 int_text=f' the pronunciation of  {int_text}'
             text=text.replace(dc[0],int_text)
 
-        
+
     return text.replace('1',' one ').replace('2',' two ').replace('3',' three ').replace('4',' four ').replace('5',' five ').replace('6',' six ').replace('7','seven').replace('8',' eight ').replace('9',' nine ').replace('0',' zero ').replace('=',' equals ')
 
 
 
 # 中英文数字转换为文字，特殊符号处理
 def split_text(text_list):
-    
+
     tx = TextNormalizer()
     haserror=False
     result=[]
@@ -176,12 +176,12 @@ def split_text_by_punctuation(text):
     min_length = 150
     punctuation_marks = "。？！，、；：”’》」』）】…—"
     english_punctuation = ".?!,:;)}…"
-    
+
     # 结果列表
     result = []
     # 起始位置
     pos = 0
-    
+
     # 遍历文本中的每个字符
     text_length=len(text)
     for i, char in enumerate(text):
@@ -195,11 +195,11 @@ def split_text_by_punctuation(text):
                 # 更新起始位置到当前标点的下一个字符
                 pos = i+1
     #print(f'{pos=},{len(text)=}')
-    
+
     # 如果剩余文本长度超过120或没有更多标点符号可以进行分割，将剩余的文本作为一个分段添加到结果列表
     if pos < len(text):
         result.append(text[pos:])
-    
+
     return result
 
 
@@ -222,18 +222,22 @@ def ClearWav(directory):
             print(f"文件删除错误 {file_path}, 报错信息: {e}")
             return False, str(e)
     return True, "所有wav文件已被删除."
-    
-# 保存音色    
+
+# 保存音色
 # 参考 https://github.com/craii/ChatTTS_WebUI/blob/main/utils.py
+<<<<<<< HEAD
 def save_speaker(name, spk):   
+=======
+def save_speaker(name, tensor):
+>>>>>>> ab4c6e1aa2b7fa2e2283f8542d12ca6bb0dcb64d
     try:
         #df = pd.DataFrame({"speaker": [float(i) for i in tensor]})
         #df.to_csv(f"{SPEAKER_DIR}/{name}.csv", index=False, header=False)
         torch.save(f"{SPEAKER_DIR}/{name}.pt")
     except Exception as e:
         print(e)
-        
-        
+
+
 # 加载音色
 # 参考 https://github.com/craii/ChatTTS_WebUI/blob/main/utils.py
 def load_speaker(name):
