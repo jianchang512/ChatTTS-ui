@@ -91,7 +91,7 @@ https://github.com/jianchang512/ChatTTS-ui/assets/3378335/e2a08ea0-32af-4a30-888
 
 ## Linux Source Code Deployment
 
-1. Prepare python3.9-3.11 environment.
+1. Prepare python3.9-3.11 environment. Install FFmpeg
 2. Create an empty directory `/data/chattts` and execute `cd /data/chattts &&  git clone https://github.com/jianchang512/chatTTS-ui .`.
 3. Create a virtual environment `python3 -m venv venv`.
 4. Activate the virtual environment `source ./venv/bin/activate`.
@@ -156,6 +156,8 @@ https://github.com/jianchang512/ChatTTS-ui/assets/3378335/e2a08ea0-32af-4a30-888
 1. Prepare the python3.9-3.11 environment and install git. Execute command `brew install libsndfile git python@3.10`. Then continue with
 
    ```
+   brew install ffmpeg
+   
    export PATH="/usr/local/opt/python@3.10/bin:$PATH"
    
    source ~/.bash_profile 
@@ -174,7 +176,7 @@ https://github.com/jianchang512/ChatTTS-ui/assets/3378335/e2a08ea0-32af-4a30-888
 
 ## Windows Source Code Deployment
 
-1. Download python3.9-3.11, make sure to check `Add Python to environment variables` during installation.
+1. Download python3.9-3.11, make sure to check `Add Python to environment variables` during installation. install ffmpeg.exe
 2. Download and install git from https://github.com/git-for-windows/git/releases/download/v2.45.1.windows.1/Git-2.45.1-64-bit.exe.
 3. Create an empty folder `D:/chattts` and enter it, type `cmd` in the address bar and press Enter. In the cmd window that pops up, execute command `git clone https://github.com/jianchang512/chatTTS-ui .`.
 4. Create a virtual environment by executing command `python -m venv venv`.
@@ -194,6 +196,8 @@ https://github.com/jianchang512/ChatTTS-ui/assets/3378335/e2a08ea0-32af-4a30-888
 
 
 ## Deployment Notes
+
+0. install ffmpeg since 0.96
 
 1. If the GPU memory is below 4GB, it will forcefully use the CPU.
 

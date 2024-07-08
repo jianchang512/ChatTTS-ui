@@ -4,6 +4,13 @@
 **注意：不同机器使用相同种子生成的音频音色可能不同，同一机器使用相同种子多次生成的音频音色也可能变化。**
 
 
+**升级到0.96版后报错**
+
+答： 0.96版起，源码部署必须先安装ffmpeg 
+
+0.96版起，之前的音色文件csv和pt已不可用，请填写音色值重新生成，或到以下站点下载  
+ 
+https://modelscope.cn/studios/ttwwwaa/ChatTTS_Speaker
 
 
 **0.** 执行app.py报错 FileNotFoundError: [Errno 2] No such file or directory: '../ChatTTS-ui/models/pzc163/chatTTS/config/path.yaml

@@ -168,7 +168,6 @@ def split_text(text_list):
             result=result+tmp_res
         else:
             result.append(tmp)
-    print(f'{result=},len={len(result)}')
     return result
 
 # 切分长行 200 150
@@ -226,10 +225,11 @@ def ClearWav(directory):
     
 # 保存音色    
 # 参考 https://github.com/craii/ChatTTS_WebUI/blob/main/utils.py
-def save_speaker(name, tensor):   
+def save_speaker(name, spk):   
     try:
-        df = pd.DataFrame({"speaker": [float(i) for i in tensor]})
-        df.to_csv(f"{SPEAKER_DIR}/{name}.csv", index=False, header=False)
+        #df = pd.DataFrame({"speaker": [float(i) for i in tensor]})
+        #df.to_csv(f"{SPEAKER_DIR}/{name}.csv", index=False, header=False)
+        torch.save(f"{SPEAKER_DIR}/{name}.pt")
     except Exception as e:
         print(e)
         
@@ -254,7 +254,7 @@ def load_speaker(name):
 def get_speakers():
     result=[]
     for it in os.listdir(SPEAKER_DIR):
-        if it.endswith('.csv') or it.endswith('.pt'):
+        if it.endswith('.pt'):
             result.append(it)
     return result
 
