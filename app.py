@@ -249,15 +249,33 @@ def tts():
         temperature=temperature,
         max_new_token=refine_max_new_token
     )
+    print(f'{prompt=}')
+    # 将少于30个字符的行同其他行拼接
+    retext=[]
+    short_text=""
+    for it in new_text:
+        if len(it)<30:
+            short_text+=f"{it} [uv_break] "
+            if len(short_text)>30:
+                retext.append(short_text)
+                short_text=""
+        else:
+            retext.append(short_text+it)
+            short_text=""
+    if len(short_text)>30:
+        retext.append(short_text)
+    elif short_text:
+        retext[-1]+=f" [uv_break] {short_text}"
+        
+    new_text=retext
     
-    
-    #new_text_list=[new_text[i:i+merge_size] for i in range(0,len(new_text),merge_size)]
+    new_text_list=[new_text[i:i+merge_size] for i in range(0,len(new_text),merge_size)]
     filename_list=[]
 
     audio_time=0
     inter_time=0
-    torchaudio.set_audio_backend("ffmpeg")
-    for i,te in enumerate(new_text):
+
+    for i,te in enumerate(new_text_list):
         print(f'{te=}')
         wavs = chat.infer(
             te, 
@@ -279,30 +297,28 @@ def tts():
         print(f"推理时长: {inference_time_rounded} 秒")
 
        
-        filename = datetime.datetime.now().strftime('%H%M%S_')+f"use{inference_time_rounded}s-seed{voice}-te{temperature}-tp{top_p}-tk{top_k}-textlen{len(text)}-{str(random())[2:7]}" + f"-{i}.wav"
-        filename_list.append(filename)
-
-        torchaudio.save(WAVS_DIR+'/'+filename, torch.from_numpy(wavs[0]).unsqueeze(0), 24000)
         
-    if len(filename_list)==1:
-        outname=filename_list[0]
-    else:
-        txt_tmp="\n".join([f"file '{WAVS_DIR}/{it}'" for it in filename_list])
-        txt_name=f'{time.time()}.txt'
-        with open(f'{WAVS_DIR}/{txt_name}','w',encoding='utf-8') as f:
-            f.write(txt_tmp)
-        outname=datetime.datetime.now().strftime('%H%M%S_')+f"use{inter_time}s-audio{audio_time}s-seed{voice}-te{temperature}-tp{top_p}-tk{top_k}-textlen{len(text)}-{str(random())[2:7]}" + "-merge.wav"
-        try:
-            subprocess.run(["ffmpeg","-hide_banner", "-ignore_unknown","-y","-f","concat","-safe","0","-i",f'{WAVS_DIR}/{txt_name}',"-c:a","copy",WAVS_DIR + '/' + outname],
-                       stdout=subprocess.PIPE,
-                       stderr=subprocess.PIPE,
-                       encoding="utf-8",
-                       check=True,
-                       text=True,
-                       creationflags=0 if sys.platform != 'win32' else subprocess.CREATE_NO_WINDOW)
-        except Exception as e:
-            return jsonify({"code":1,"msg":str(e)})
-    
+        for j,w in enumerate(wavs):
+            filename = datetime.datetime.now().strftime('%H%M%S_')+f"use{inference_time_rounded}s-seed{voice}-te{temperature}-tp{top_p}-tk{top_k}-textlen{len(text)}-{str(random())[2:7]}" + f"-{i}-{j}.wav"
+            filename_list.append(filename)
+            torchaudio.save(WAVS_DIR+'/'+filename, torch.from_numpy(w).unsqueeze(0), 24000)
+        
+    txt_tmp="\n".join([f"file '{WAVS_DIR}/{it}'" for it in filename_list])
+    txt_name=f'{time.time()}.txt'
+    with open(f'{WAVS_DIR}/{txt_name}','w',encoding='utf-8') as f:
+        f.write(txt_tmp)
+    outname=datetime.datetime.now().strftime('%H%M%S_')+f"use{inter_time}s-audio{audio_time}s-seed{voice}-te{temperature}-tp{top_p}-tk{top_k}-textlen{len(text)}-{str(random())[2:7]}" + "-merge.wav"
+    try:
+        subprocess.run(["ffmpeg","-hide_banner", "-ignore_unknown","-y","-f","concat","-safe","0","-i",f'{WAVS_DIR}/{txt_name}',"-c:a","copy",WAVS_DIR + '/' + outname],
+                   stdout=subprocess.PIPE,
+                   stderr=subprocess.PIPE,
+                   encoding="utf-8",
+                   check=True,
+                   text=True,
+                   creationflags=0 if sys.platform != 'win32' else subprocess.CREATE_NO_WINDOW)
+    except Exception as e:
+        return jsonify({"code":1,"msg":str(e)})
+
     
 
     audio_files.append({
