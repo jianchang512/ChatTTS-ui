@@ -1,0 +1,1 @@
+file 'E:/python/chattts/static/wavs/230625_use35.89s-seed1031.pt-te0.1-tp0.701-tk20-textlen43-76439-0-0.wav'

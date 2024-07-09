@@ -76,12 +76,12 @@
         </div>
         <div class="col align-items-center input-group"> 
             <span class="input-group-text" id="">Prompt</span>
-            <input id="prompt" class="form-control" data-toggle="tooltip" title="Fill in the prompt, such as [oral_2][laugh_0][break_6]" placeholder="For example [oral_2][laugh_0][break_6]" />
+            <input id="prompt" class="form-control" value="[break_6]" data-toggle="tooltip" title="Fill in the prompt, such as [oral_2][laugh_0][break_6]" placeholder="For example [oral_2][laugh_0][break_6]" />
         </div>
         
         <div class="col-2 align-items-center">
           <div class="form-check" title="If control characters have been added to the text or the effect is poor, you can try selecting this option" data-toggle="tooltip">
-            <input type="checkbox" class="form-check-input" id="skip_refine">
+            <input type="checkbox" checked class="form-check-input" id="skip_refine">
             <label class="form-check-label" for="skip_refine">Skip Refine Text</label>
           </div>
         </div>
@@ -105,14 +105,14 @@
     
     <div class="form-group d-flex col align-items-center">
         <label for="temperature">temperature</label>
-        <input type="range" class="form-control-range" id="temperature" min="0.00001" max="1.0" step="0.00001" value="0.3">
-        <span class="w-50px text-secondary font12">0.3</span>
+        <input type="range" class="form-control-range" id="temperature" min="0.00001" max="1.0" step="0.00001" value="0.1">
+        <span class="w-50px text-secondary font12">0.1</span>
     </div>
     
     <div class="form-group d-flex col align-items-center">
         <label for="top_p">top_p</label>
-        <input type="range" class="form-control-range" id="top_p" min="0.1" max="0.9" step="0.05" value="0.7">
-        <span class="w-50px text-secondary font12">0.7</span>
+        <input type="range" class="form-control-range" id="top_p" min="0.001" max="0.9" step="0.05" value="0.7">
+        <span class="w-50px text-secondary font12">0.05</span>
 
     </div>
     
