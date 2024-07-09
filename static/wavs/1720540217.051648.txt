@@ -1,2 +1,0 @@
-file 'E:/python/chattts/static/wavs/235016_use108.0s-seed1031.pt-te0.1-tp0.701-tk20-textlen145-35029-0-0.wav'
-file 'E:/python/chattts/static/wavs/235016_use108.0s-seed1031.pt-te0.1-tp0.701-tk20-textlen145-88558-0-1.wav'

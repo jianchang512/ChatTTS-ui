@@ -1,5 +1,0 @@
-file 'E:/python/chattts/static/wavs/235341_use60.11s-seed8888.pt-te0.1-tp0.701-tk20-textlen154-60741-0-0.wav'
-file 'E:/python/chattts/static/wavs/235341_use60.11s-seed8888.pt-te0.1-tp0.701-tk20-textlen154-14234-0-1.wav'
-file 'E:/python/chattts/static/wavs/235341_use60.11s-seed8888.pt-te0.1-tp0.701-tk20-textlen154-93130-0-2.wav'
-file 'E:/python/chattts/static/wavs/235341_use60.11s-seed8888.pt-te0.1-tp0.701-tk20-textlen154-26020-0-3.wav'
-file 'E:/python/chattts/static/wavs/235341_use60.11s-seed8888.pt-te0.1-tp0.701-tk20-textlen154-56075-0-4.wav'
