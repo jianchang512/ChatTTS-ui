@@ -223,19 +223,6 @@ def ClearWav(directory):
             return False, str(e)
     return True, "所有wav文件已被删除."
 
-# 保存音色
-# 参考 https://github.com/craii/ChatTTS_WebUI/blob/main/utils.py
-<<<<<<< HEAD
-def save_speaker(name, spk):   
-=======
-def save_speaker(name, tensor):
->>>>>>> ab4c6e1aa2b7fa2e2283f8542d12ca6bb0dcb64d
-    try:
-        #df = pd.DataFrame({"speaker": [float(i) for i in tensor]})
-        #df.to_csv(f"{SPEAKER_DIR}/{name}.csv", index=False, header=False)
-        torch.save(f"{SPEAKER_DIR}/{name}.pt")
-    except Exception as e:
-        print(e)
 
 
 # 加载音色
