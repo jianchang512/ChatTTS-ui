@@ -19,5 +19,6 @@ gitcmd.bat
 logs
 poetry.lock
 docs
+static/wavs/*
 examples
 ffmpeg/ffmpeg.exe
