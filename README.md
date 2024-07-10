@@ -8,9 +8,9 @@
 原 [ChatTTS](https://github.com/2noise/chattts) 项目
 
 
-> 0.96版起，源码部署必须先安装ffmpeg 
+> 0.96版起，源码部署必须先安装ffmpeg ,之前的音色文件csv和pt已不可用，请填写音色值重新生成
 >
-> 0.96版起，之前的音色文件csv和pt已不可用，请填写音色值重新生成
+> [获取音色](?tab=readme-ov-file#音色获取)
 
 
 
@@ -220,7 +220,7 @@ https://github.com/jianchang512/ChatTTS-ui/assets/3378335/e2a08ea0-32af-4a30-888
 
 0.96版本后，因ChatTTS内核升级，已无法直接使用从该站点下载的pt文件(https://modelscope.cn/studios/ttwwwaa/ChatTTS_Speaker)
 
-因此增加转换脚本 cover-pt.py(Win整合包可以直接下载 cover-pt.exe 文件，和 app.exe 放在同一目录下双击执行)。
+因此增加转换脚本 cover-pt.py [Win整合包可以直接下载 cover-pt.exe 文件，和 app.exe 放在同一目录下双击执行](https://github.com/jianchang512/ChatTTS-ui/releases)
 
 执行  `python cover-pt.py` 后将把 `speaker` 目录下的，以 `seed_` 开头，以  `_emb.pt` 结尾的文件，即下载后的默认文件名pt，
 转换为可用的编码格式，转换后的pt将改名为以 `_emb-covert.pt` 结尾。
