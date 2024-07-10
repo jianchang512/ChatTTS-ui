@@ -262,7 +262,7 @@ def tts():
         else:
             retext.append(short_text+it)
             short_text=""
-    if len(short_text)>30:
+    if len(short_text)>30 or len(retext)<1:
         retext.append(short_text)
     elif short_text:
         retext[-1]+=f" [uv_break] {short_text}"
