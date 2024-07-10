@@ -1,5 +1,7 @@
 FROM pytorch/torchserve:0.11.0-gpu as builder
 
+RUN apt-get install ffmpeg
+
 WORKDIR /app
 
 COPY . ./
