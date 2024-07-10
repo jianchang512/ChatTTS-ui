@@ -10,9 +10,10 @@
 
 > 0.96版起，源码部署必须先安装ffmpeg 
 >
-> 0.96版起，之前的音色文件csv和pt已不可用，请填写音色值重新生成，或到以下站点下载  
-> 
-> https://modelscope.cn/studios/ttwwwaa/ChatTTS_Speaker
+> 0.96版起，之前的音色文件csv和pt已不可用，请填写音色值重新生成
+
+> ChatTTS内核升级，从此站点下载的pt文件似已不可用，请填写音色值生成。https://modelscope.cn/studios/ttwwwaa/ChatTTS_Speaker
+
 
 
 **界面预览**
