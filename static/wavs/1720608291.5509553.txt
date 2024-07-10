@@ -1,1 +1,0 @@
-file 'E:/python/chattts/static/wavs/184451_use37.95s-seedseed_2155_restored_emb-covert.pt-te0.1-tp0.701-tk20-textlen22-05004-0-0.wav'
