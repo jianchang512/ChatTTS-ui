@@ -12,8 +12,6 @@
 >
 > 0.96版起，之前的音色文件csv和pt已不可用，请填写音色值重新生成
 
-> ChatTTS内核升级，从此站点下载的pt文件似已不可用，请填写音色值生成。https://modelscope.cn/studios/ttwwwaa/ChatTTS_Speaker
-
 
 
 **界面预览**
@@ -216,19 +214,20 @@ https://github.com/jianchang512/ChatTTS-ui/assets/3378335/e2a08ea0-32af-4a30-888
 
 3. 默认检测 modelscope 是否可连接，如果可以，则从modelscope下载模型，否则从 huggingface.co下载模型
 
+
+
 ## 音色获取
 
-从 0.95 版本起，仅支持pt格式的固定音色，下载后保存到软件目录下的  speaker 文件夹中即可。
+0.96版本后，因ChatTTS内核升级，已无法直接使用从该站点下载的pt文件(https://modelscope.cn/studios/ttwwwaa/ChatTTS_Speaker)
 
-并且之前版本的pt或csv文件均不可用，请删除之前的音色文件，然后请填写音色值重新生成。
+因此增加转换脚本 cover-pt.py(Win整合包可以直接下载 cover-pt.exe 文件，和 app.exe 放在同一目录下双击执行)。
 
-也可从下面网址重新下载。
+执行  `python cover-pt.py` 后将把 `speaker` 目录下的，以 `seed_` 开头，以  `_emb.pt` 结尾的文件，即下载后的默认文件名pt，
+转换为可用的编码格式，转换后的pt将改名为以 `_emb-covert.pt` 结尾。
 
-pt文件可从 https://github.com/6drf21e/ChatTTS_Speaker 项目提供的体验链接页面 (https://modelscope.cn/studios/ttwwwaa/ChatTTS_Speaker) 下载。
+例：
 
-
-**不同设备同一音色值seed，最终合成的声音会有差异的，以及同一设备相同音色值，音色也可能会有变化，尤其音调**
-
+假如  `speaker/seed_2155_restored_emb.pt` 存在这个文件,将被转换为 `speaker/seed_2155_restored_emb-cover.pt`, 然后删掉原pt文件，仅保留该转换后的文件即可
 
 
 
