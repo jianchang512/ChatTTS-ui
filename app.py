@@ -11,10 +11,7 @@ from pathlib import Path
 print('Starting...')
 import shutil
 import time
-if not shutil.which("ffmpeg"):
-    print('请先安装ffmpeg')
-    time.sleep(60)
-    exit()
+
 import torch
 import torch._dynamo
 torch._dynamo.config.suppress_errors = True
@@ -49,6 +46,10 @@ elif env_lang=='en':
 else:
     is_cn=is_chinese_os()
     
+if not shutil.which("ffmpeg"):
+    print('请先安装ffmpeg')
+    time.sleep(60)
+    exit()    
 CHATTTS_DIR= MODEL_DIR+'/pzc163/chatTTS'
 # 默认从 modelscope 下载模型
 # 如果已存在则不再下载和检测更新，便于离线内网使用
