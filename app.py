@@ -71,6 +71,10 @@ chat = ChatTTS.Chat()
 device=os.getenv('device','default')
 chat.load(source="custom",custom_path=CHATTTS_DIR, device=None if device=='default' else device,compile=True if os.getenv('compile','true').lower()!='false' else False)
 
+
+
+
+
 # 如果希望从 huggingface.co下载模型，将以下注释删掉。将上方3行内容注释掉
 # 如果已存在则不再下载和检测更新，便于离线内网使用
 #CHATTTS_DIR=MODEL_DIR+'/models--2Noise--ChatTTS'
@@ -280,7 +284,7 @@ def tts():
         print(f'{te=}')
         wavs = chat.infer(
             te, 
-            use_decoder=True,
+            #use_decoder=False,
             stream=True if is_stream==1 else False,
             skip_refine_text=skip_refine,
             do_text_normalization=False,
