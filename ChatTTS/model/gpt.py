@@ -1,15 +1,9 @@
-import os, platform
-
-os.environ["TOKENIZERS_PARALLELISM"] = "false"
-"""
-https://stackoverflow.com/questions/62691279/how-to-disable-tokenizers-parallelism-true-false-warning
-"""
-
+import platform
 from dataclasses import dataclass
 import logging
 from typing import Union, List, Optional, Tuple
+import gc
 
-import omegaconf
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -28,9 +22,9 @@ from ..utils import del_all
 class GPT(nn.Module):
     def __init__(
         self,
-        gpt_config: omegaconf.DictConfig,
-        num_audio_tokens: int,
-        num_text_tokens: int,
+        gpt_config: dict,
+        num_audio_tokens: int = 626,
+        num_text_tokens: int = 21178,
         num_vq=4,
         use_flash_attn=False,
         device=torch.device("cpu"),
@@ -48,7 +42,8 @@ class GPT(nn.Module):
 
         self.use_flash_attn = use_flash_attn
 
-        self.gpt = self._build_llama(gpt_config, self.device_gpt)
+        self.gpt, self.llama_config = self._build_llama(gpt_config, self.device_gpt)
+        self.is_te_llama = False
         self.model_dim = int(self.gpt.config.hidden_size)
         self.emb_code = nn.ModuleList(
             [
@@ -88,6 +83,29 @@ class GPT(nn.Module):
             ],
         )
 
+    def from_pretrained(self, file_path: str):
+
+        self.load_state_dict(torch.load(file_path, weights_only=True, mmap=True))
+
+        if (
+            "cuda" in str(self.device_gpt) and platform.system().lower() == "linux"
+        ):  # is TELlamaModel
+            try:
+                from .cuda import TELlamaModel
+
+                self.logger.info("Linux with CUDA, try NVIDIA accelerated TELlamaModel")
+                state_dict = self.gpt.state_dict()
+                vanilla = TELlamaModel.from_state_dict(state_dict, self.llama_config)
+                # Force mem release. Taken from huggingface code
+                del state_dict, self.gpt
+                gc.collect()
+                self.gpt = vanilla
+                self.is_te_llama = True
+            except Exception as e:
+                self.logger.warning(
+                    f"use default LlamaModel for importing TELlamaModel error: {e}"
+                )
+
     class Context:
         def __init__(self):
             self._interrupt = False
@@ -100,44 +118,30 @@ class GPT(nn.Module):
 
     def _build_llama(
         self,
-        config: omegaconf.DictConfig,
+        config: dict,
         device: torch.device,
-    ) -> LlamaModel:
+    ) -> Tuple[LlamaModel, LlamaConfig]:
 
-        model = None
+        if self.use_flash_attn and is_flash_attn_2_available():
+            llama_config = LlamaConfig(
+                **config,
+                attn_implementation="flash_attention_2",
+            )
+            self.logger.warning(
+                "enabling flash_attention_2 may make gpt be even slower"
+            )
+        else:
+            llama_config = LlamaConfig(**config)
 
-        if "cuda" in str(device) and platform.system().lower() == "linux":
-            try:
-                from .cuda import TELlamaModel
-
-                model = TELlamaModel(LlamaConfig(**config))
-                self.logger.info("Linux with CUDA, try NVIDIA accelerated TELlamaModel")
-            except Exception as e:
-                model = None
-                self.logger.warning(
-                    f"use default LlamaModel for importing TELlamaModel error: {e}"
-                )
-
-        if model is None:
-            if self.use_flash_attn and is_flash_attn_2_available():
-                llama_config = LlamaConfig(
-                    **config,
-                    attn_implementation="flash_attention_2",
-                )
-                self.logger.warning(
-                    "enabling flash_attention_2 may make gpt be even slower"
-                )
-            else:
-                llama_config = LlamaConfig(**config)
-            model = LlamaModel(llama_config)
+        model = LlamaModel(llama_config)
         del model.embed_tokens
 
-        return model.to(device)
+        return model.to(device), llama_config
 
     def prepare(self, compile=False):
         if self.use_flash_attn and is_flash_attn_2_available():
             self.gpt = self.gpt.to(dtype=torch.float16)
-        if compile:
+        if compile and not self.is_te_llama:
             try:
                 self.compile(backend="inductor", dynamic=True)
                 self.gpt.compile(backend="inductor", dynamic=True)
@@ -215,9 +219,10 @@ class GPT(nn.Module):
         # TODO joao: standardize interface for the different Cache classes and remove of this if
         has_static_cache = False
         if past_key_values is None:
-            past_key_values = getattr(
-                self.gpt.layers[0].self_attn, "past_key_value", None
-            )
+            if hasattr(self.gpt.layers[0], "self_attn"):
+                past_key_values = getattr(
+                    self.gpt.layers[0].self_attn, "past_key_value", None
+                )
             has_static_cache = past_key_values is not None
 
         past_length = 0
@@ -247,8 +252,8 @@ class GPT(nn.Module):
                 attention_mask is not None
                 and attention_mask.shape[1] > input_ids.shape[1]
             ):
-                start = -(attention_mask.shape[1] - past_length)
-                input_ids = input_ids.narrow(1, start, -start)
+                start = attention_mask.shape[1] - past_length
+                input_ids = input_ids.narrow(1, -start, start)
             # 2 - If the past_length is smaller than input_ids', then input_ids holds all input tokens. We can discard
             # input_ids based on the past_length.
             elif past_length < input_ids.shape[1]:
@@ -400,6 +405,19 @@ class GPT(nn.Module):
                 attention_mask
             )
 
+        progress = inputs_ids.size(1)
+        # pre-allocate inputs_ids
+        inputs_ids_buf = torch.zeros(
+            inputs_ids.size(0),
+            progress + max_new_token,
+            inputs_ids.size(2),
+            dtype=inputs_ids.dtype,
+            device=inputs_ids.device,
+        )
+        inputs_ids_buf.narrow(1, 0, progress).copy_(inputs_ids)
+        del inputs_ids
+        inputs_ids = inputs_ids_buf.narrow(1, 0, progress)
+
         pbar: Optional[tqdm] = None
 
         if show_tqdm:
@@ -412,11 +430,12 @@ class GPT(nn.Module):
         past_key_values = None
 
         for i in range(max_new_token):
+
             model_input = self._prepare_generation_inputs(
                 inputs_ids,
                 past_key_values,
                 attention_mask_cache.narrow(1, 0, inputs_ids.shape[1]),
-                use_cache=True,
+                use_cache=not self.is_te_llama,
             )
 
             if i > 0:
@@ -482,13 +501,26 @@ class GPT(nn.Module):
                 logits = logits.permute(0, 2, 1)
                 logits = logits.reshape(-1, logits.size(2))
                 # logits_token = rearrange(inputs_ids[:, start_idx:], "b c n -> (b n) c")
-                inputs_ids_sliced = inputs_ids[:, start_idx:].permute(0, 2, 1)
+                inputs_ids_sliced = inputs_ids.narrow(
+                    1,
+                    start_idx,
+                    inputs_ids.size(1) - start_idx,
+                ).permute(0, 2, 1)
                 logits_token = inputs_ids_sliced.reshape(
                     inputs_ids_sliced.size(0) * inputs_ids_sliced.size(1),
                     -1,
                 ).to(self.device)
+                del inputs_ids_sliced
             else:
-                logits_token = inputs_ids[:, start_idx:, 0].to(self.device)
+                logits_token = (
+                    inputs_ids.narrow(
+                        1,
+                        start_idx,
+                        inputs_ids.size(1) - start_idx,
+                    )
+                    .narrow(2, 0, 1)
+                    .to(self.device)
+                )
 
             logits /= temperature
 
@@ -509,23 +541,21 @@ class GPT(nn.Module):
 
             idx_next = torch.multinomial(scores, num_samples=1).to(finish.device)
 
+            del scores
+
             if not infer_text:
                 # idx_next = rearrange(idx_next, "(b n) 1 -> b n", n=self.num_vq)
                 idx_next = idx_next.view(-1, self.num_vq)
                 finish_or = idx_next.eq(eos_token).any(1)
                 finish.logical_or_(finish_or)
                 del finish_or
-                inputs_ids_tmp = torch.cat([inputs_ids, idx_next.unsqueeze_(1)], 1)
+                inputs_ids_buf.narrow(1, progress, 1).copy_(idx_next.unsqueeze_(1))
             else:
                 finish_or = idx_next.eq(eos_token).any(1)
                 finish.logical_or_(finish_or)
                 del finish_or
-                inputs_ids_tmp = torch.cat(
-                    [
-                        inputs_ids,
-                        idx_next.unsqueeze_(-1).expand(-1, -1, self.num_vq),
-                    ],
-                    1,
+                inputs_ids_buf.narrow(1, progress, 1).copy_(
+                    idx_next.unsqueeze_(-1).expand(-1, -1, self.num_vq),
                 )
 
             if i == 0 and finish.any():
@@ -547,7 +577,7 @@ class GPT(nn.Module):
                         attention_mask_cache,
                         past_key_values,
                         idx_next,
-                        inputs_ids_tmp,
+                        inputs_ids_buf,
                     )
                     new_gen = self.generate(
                         emb,
@@ -565,15 +595,17 @@ class GPT(nn.Module):
                         stream,
                         show_tqdm,
                         ensure_non_empty,
+                        stream_batch,
                         context,
                     )
                     for result in new_gen:
                         yield result
+                    del inputs_ids
                 return
 
-            del inputs_ids
-            inputs_ids = inputs_ids_tmp
-            del inputs_ids_tmp, idx_next
+            del idx_next
+            progress += 1
+            inputs_ids = inputs_ids_buf.narrow(1, 0, progress)
 
             not_finished = finish.logical_not().to(end_idx.device)
             end_idx.add_(not_finished.int())
@@ -608,7 +640,7 @@ class GPT(nn.Module):
                     f"incomplete result. hit max_new_token: {max_new_token}"
                 )
 
-        del finish
+        del finish, inputs_ids_buf
 
         yield self._prepare_generation_outputs(
             inputs_ids,
