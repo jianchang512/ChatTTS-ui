@@ -12,7 +12,7 @@ def get_executable_path():
 
 ROOT_DIR=get_executable_path()
 
-MODEL_DIR_PATH=Path(ROOT_DIR+"/models")
+MODEL_DIR_PATH=Path(ROOT_DIR+"/asset")
 MODEL_DIR_PATH.mkdir(parents=True, exist_ok=True)
 MODEL_DIR=MODEL_DIR_PATH.as_posix()
 
