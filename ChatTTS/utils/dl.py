@@ -130,12 +130,14 @@ def download_all_assets(tmpdir: str, version="0.2.6"):
         suffix = "zip" if is_win else "tar.gz"
         RVCMD_URL = BASE_URL + f"v{version}/rvcmd_{system_type}_{architecture}.{suffix}"
         cmdfile = os.path.join(tmpdir, "rvcmd")
+        print(f'{RVCMD_URL=},{tmpdir=}')
         if is_win:
             download_and_extract_zip(RVCMD_URL, tmpdir)
             cmdfile += ".exe"
         else:
             download_and_extract_tar_gz(RVCMD_URL, tmpdir)
             os.chmod(cmdfile, 0o755)
+        print(f'{cmdfile=}')
         subprocess.run([cmdfile, "-notui", "-w", "0", "assets/chtts"])
     except Exception:
         BASE_URL = "https://raw.gitcode.com/u011570312/RVC-Models-Downloader/assets/"
