@@ -35,7 +35,7 @@ import numpy as np
 import threading
 from uilib.cfg import WEB_ADDRESS, SPEAKER_DIR, LOGS_DIR, WAVS_DIR, MODEL_DIR, ROOT_DIR
 from uilib import utils,VERSION
-from ChatTTS.utils.gpu_utils import select_device
+from ChatTTS.utils import select_device
 from uilib.utils import is_chinese_os,modelscope_status
 merge_size=int(os.getenv('merge_size',10))
 env_lang=os.getenv('lang','')
@@ -53,9 +53,17 @@ if not shutil.which("ffmpeg"):
 
 
 chat = ChatTTS.Chat()
-device=os.getenv('device','default')
+device_str=os.getenv('device','default')
 
-chat.load(source="local" if not os.path.exists(MODEL_DIR+"/DVAE_full.pt") else 'custom',custom_path=ROOT_DIR, device=None if device=='default' else device,compile=True if os.getenv('compile','true').lower()!='false' else False)
+if device_str in ['default','mps']:
+    device=select_device(min_memory=2047,experimental=True if device_str=='mps' else False)
+elif device_str =='cuda':
+    device=select_device(min_memory=2047)
+elif device_str == 'cpu':
+    device = torch.device("cpu")
+
+
+chat.load(source="local" if not os.path.exists(MODEL_DIR+"/DVAE_full.pt") else 'custom',custom_path=ROOT_DIR, device=device,compile=True if os.getenv('compile','true').lower()!='false' else False)
 
 
 # 配置日志
@@ -175,7 +183,7 @@ def tts():
     
     if voice.endswith('.pt') and os.path.exists(seed_path):
         #如果.env中未指定设备，则使用 ChatTTS相同算法找设备，否则使用指定设备
-        rand_spk=torch.load(seed_path, map_location=select_device(4096) if device=='default' else torch.device(device))
+        rand_spk=torch.load(seed_path, map_location=device)
         print(f'当前使用音色 {seed_path=}')
     # 否则 判断是否存在 {voice}.csv
     #elif os.path.exists(f'{SPEAKER_DIR}/{voice}.csv'):
