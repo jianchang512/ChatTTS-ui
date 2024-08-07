@@ -13,6 +13,7 @@ __pycache__
 *.ui
 *.bak
 *.aac
+*.pt
 *.wav
 pack.bat
 gitcmd.bat
