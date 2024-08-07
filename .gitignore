@@ -23,4 +23,4 @@ docs
 static/wavs/*
 examples
 ffmpeg/ffmpeg.exe
-asset/
+asset/*.pt
