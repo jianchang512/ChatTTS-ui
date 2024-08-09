@@ -59,7 +59,7 @@ import numpy as np
 import threading
 from uilib.cfg import WEB_ADDRESS, SPEAKER_DIR, LOGS_DIR, WAVS_DIR, MODEL_DIR, ROOT_DIR
 from uilib import utils,VERSION
-from ChatTTS.utils.gpu_utils import select_device
+from ChatTTS.utils import select_device
 from uilib.utils import is_chinese_os,modelscope_status
 merge_size=int(os.getenv('merge_size',10))
 env_lang=os.getenv('lang','')
@@ -70,18 +70,26 @@ elif env_lang=='en':
 else:
     is_cn=is_chinese_os()
     
-CHATTTS_DIR= MODEL_DIR+'/pzc163/chatTTS'
 
 
 chat = ChatTTS.Chat()
-device=os.getenv('device','default')
-chat.load(source="custom",custom_path=CHATTTS_DIR, device=None if device=='default' else device,compile=True if os.getenv('compile','true').lower()!='false' else False)
+device_str=os.getenv('device','default')
+
+if device_str in ['default','mps']:
+    device=select_device(min_memory=2047,experimental=True if device_str=='mps' else False)
+elif device_str =='cuda':
+    device=select_device(min_memory=2047)
+elif device_str == 'cpu':
+    device = torch.device("cpu")
+
+
+chat.load(source="custom",custom_path=ROOT_DIR, device=device,compile=True if os.getenv('compile','true').lower()!='false' else False)
 n=0
 for it in os.listdir('./speaker'):
     if it.startswith('seed_') and not it.endswith('_emb-covert.pt'):
         print(f'开始转换 {it}')        
         n+=1
-        rand_spk=torch.load(f'./speaker/{it}', map_location=select_device(4096) if device=='default' else torch.device(device))
+        rand_spk=torch.load(f'./speaker/{it}', map_location=device)
 
         torch.save( chat._encode_spk_emb(rand_spk) ,f"{SPEAKER_DIR}/{it.replace('.pt','-covert.pt')}")
 if n==0:
