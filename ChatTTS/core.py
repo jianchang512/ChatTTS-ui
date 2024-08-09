@@ -416,6 +416,20 @@ class Chat:
             # Filter both rows and columns using slicing
             yield new_wavs[:][:, keep_cols]
 
+    @staticmethod
+    @torch.no_grad()
+    def _encode_spk_emb(spk_emb: torch.Tensor) -> str:
+        arr: np.ndarray = spk_emb.to(dtype=torch.float16, device="cpu").numpy()
+        s = b14.encode_to_string(
+            lzma.compress(
+                arr.tobytes(),
+                format=lzma.FORMAT_RAW,
+                filters=[{"id": lzma.FILTER_LZMA2, "preset": 9 | lzma.PRESET_EXTREME}],
+            ),
+        )
+        del arr
+        return s
+
     @torch.inference_mode()
     def _vocos_decode(self, spec: torch.Tensor) -> np.ndarray:
         if "mps" in str(self.device):
