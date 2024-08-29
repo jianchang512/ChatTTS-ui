@@ -15,15 +15,10 @@
 > [![](https://github.com/user-attachments/assets/e3e2e6f9-e2e4-44e4-860b-9d1ce5b53d4f)](https://302.ai/)
 >  [302.AI](https://302.ai)是一个汇集全球顶级品牌的AI超市，按需付费，零月费，零门槛使用各种类型AI。
 > 
-> 功能全面: 将最好用的AI集成到在平台之上，包括不限于AI聊天，图片生成，图片处理，视频生成，全方位覆盖。
+> 功能全面、简单易用、按需付费零门槛、管理者和使用者分离
 > 
-> 简单易用: 提供机器人，工具和API多种使用方法，可以满足从小白到开发者多种角色的需求。
-> 
-> 按需付费零门槛: 不提供月付套餐，对产品不设任何门槛，按需付费，全部开放。充值余额永久有效。
-> 
-> 管理者和使用者分离： 管理者一键分享，使用者无需登录。
-**界面预览**
 
+**界面预览**
 
 ![image](https://github.com/jianchang512/ChatTTS-ui/assets/3378335/669876cf-5061-4d7d-86c5-3333d0882ee8)
 
@@ -42,6 +37,18 @@ https://github.com/jianchang512/ChatTTS-ui/assets/3378335/e2a08ea0-32af-4a30-888
 1. 从 [Releases](https://github.com/jianchang512/chatTTS-ui/releases)中下载压缩包，解压后双击 app.exe 即可使用
 2. 某些安全软件可能报毒，请退出或使用源码部署
 3. 英伟达显卡大于4G显存，并安装了CUDA11.8+后，将启用GPU加速
+
+## 手动下载模型
+
+第一次将从huggingface.co或github下载模型到asset目录下，如果网络不稳，可能下载失败，若是失败，请单独下载
+
+下载后解压后，会看到asset文件夹，该文件夹内有多个pt文件，将所有pt文件复制到asset目录下，然后重启软件
+
+GitHub下载地址: https://github.com/jianchang512/ChatTTS-ui/releases/download/v1.0/all-models.7z
+
+百度网盘下载地址: https://pan.baidu.com/s/1yGDZM9YNN7kW9e7SFo8lLw?pwd=ct5x
+
+
 
 ## Linux 下容器部署
 
