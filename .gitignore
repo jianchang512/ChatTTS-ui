@@ -14,7 +14,7 @@ __pycache__
 *.bak
 *.aac
 *.pt
-*.wav
+# *.wav
 pack.bat
 gitcmd.bat
 logs
