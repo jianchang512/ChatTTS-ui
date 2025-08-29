@@ -10,12 +10,6 @@
 原 [ChatTTS](https://github.com/2noise/chattts) 项目. 0.96版起，源码部署必须先安装ffmpeg ,之前的音色文件csv和pt已不可用，请填写音色值重新生成.[获取音色](?tab=readme-ov-file#音色获取)
 
 
-> **[赞助商]**
-> 
-> [![](https://github.com/user-attachments/assets/5348c86e-2d5f-44c7-bc1b-3cc5f077e710)](https://gpt302.saaslink.net/teRK8Y)
->  [302.AI](https://gpt302.saaslink.net/teRK8Y)是一个按需付费的一站式AI应用平台，开放平台，开源生态, [302.AI开源地址](https://github.com/302ai)
-> 
-> 集合了最新最全的AI模型和品牌/按需付费零月费/管理和使用分离/所有AI能力均提供API/每周推出2-3个新应用
 
 **界面预览**
 
