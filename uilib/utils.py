@@ -139,50 +139,131 @@ def num2text(text):
 
 
 def remove_brackets(text):
-    # 正则表达式
-    text=re.sub(r'\[(uv_break|laugh|lbreak|break)\]',r' \1 ',text,re.I|re.S|re.M)
+    """Normalize brackets around known control tokens while stripping stray brackets.
 
-    # 使用 re.sub 替换掉 [ ] 对
-    newt=re.sub(r'\[|\]|！|：|｛|｝', '', text)
-    return    re.sub(r'\s(uv_break|laugh|lbreak|break)(?=\s|$)', r' [\1] ', newt)
+    This function is aware of ChatTTS control tokens and keeps them in [token] form:
+    [uv_break], [laugh], [lbreak], [break], [oral_N], [laugh_N], [break_N].
+    """
+
+    # 识别所有支持的控制符, 包含带数字下标的形式
+    control_pattern = r'(uv_break|laugh|lbreak|break|oral_\d+|laugh_\d+|break_\d+)'
+
+    # 先把形如 [token] 的控制符展开成裸 token, 方便清理多余符号
+    text = re.sub(r'\[' + control_pattern + r'\]', r' \1 ', text, flags=re.I | re.S | re.M)
+
+    # 使用 re.sub 替换掉剩余的 [ ] 以及部分全角标点
+    newt = re.sub(r'\[|\]|！|：|｛|｝', '', text)
+
+    # 再把控制符恢复为 [token] 形式, 并保证两侧有空格, 避免被归一化当成普通单词处理
+    return re.sub(r'\s' + control_pattern + r'(?=\s|$)', r' [\1] ', newt, flags=re.I | re.S | re.M)
+
+
+# 保护/还原控制符, 防止在中英文归一化过程中被改写
+_CONTROL_TOKEN_RE = re.compile(
+    r'\[(uv_break|laugh|lbreak|break|oral_\d+|laugh_\d+|break_\d+)\]',
+    re.I,
+)
+
+
+def _encode_index(i: int) -> str:
+    """Encode numeric index into A-Z string to avoid interference with number normalization."""
+
+    if i < 0:
+        i = 0
+    chars = []
+    while True:
+        chars.append(chr(ord('A') + (i % 26)))
+        i //= 26
+        if i == 0:
+            break
+    return ''.join(reversed(chars))
+
+
+def _decode_index(tag: str) -> int:
+    """Inverse of _encode_index, restore numeric index from A-Z string."""
+
+    idx = 0
+    for ch in tag:
+        idx = idx * 26 + (ord(ch) - ord('A'))
+    return idx
+
+
+def _protect_control_tokens(text: str):
+    """Replace [control] tokens with placeholders __CTRL_XX__ and return (new_text, tokens)."""
+
+    tokens = []
+
+    def repl(m: re.Match):
+        full = m.group(0)  # 包含 [ ] 的完整 token
+        idx = len(tokens)
+        tokens.append(full)
+        tag = _encode_index(idx)
+        return f"__CTRL_{tag}__"
+
+    protected = _CONTROL_TOKEN_RE.sub(repl, text)
+    return protected, tokens
+
+
+_CTRL_PLACEHOLDER_RE = re.compile(r'__CTRL_([A-Z]+)__')
+
+
+def _restore_control_tokens(text: str, tokens):
+    """Restore __CTRL_XX__ placeholders back to original [control] tokens."""
+
+    def repl(m: re.Match):
+        tag = m.group(1)
+        idx = _decode_index(tag)
+        if 0 <= idx < len(tokens):
+            return tokens[idx]
+        return m.group(0)
+
+    return _CTRL_PLACEHOLDER_RE.sub(repl, text)
 
 
 # 中英文数字转换为文字，特殊符号处理
-def split_text(text_list):
-    
+def split_text(text_list, segment_len=None):
     tx = TextNormalizer()
     haserror=False
     result=[]
+    max_len = segment_len if isinstance(segment_len, int) and segment_len > 0 else 200
+    min_len = segment_len if isinstance(segment_len, int) and segment_len > 0 else 150
     for i,text in enumerate(text_list):
-        text=remove_brackets(text)
-        if get_lang(text)=='zh':
-            tmp="".join(tx.normalize(text))
+        text = remove_brackets(text)
+        lang = get_lang(text)
+
+        # 在做任何归一化之前, 先保护控制符, 避免 oral_2 等被改写成 oral_二
+        protected_text, ctrl_tokens = _protect_control_tokens(text)
+
+        if lang == 'zh':
+            tmp = "".join(tx.normalize(protected_text))
+            tmp = _restore_control_tokens(tmp, ctrl_tokens)
         elif haserror:
-            tmp=num2text(text)
+            tmp = num2text(protected_text)
+            tmp = _restore_control_tokens(tmp, ctrl_tokens)
         else:
             try:
                 # 先尝试使用 nemo_text_processing 处理英文
                 from nemo_text_processing.text_normalization.normalize import Normalizer
                 fun = partial(Normalizer(input_case='cased', lang="en").normalize, verbose=False, punct_post_process=True)
-                tmp=fun(text)
+                tmp = fun(protected_text)
+                tmp = _restore_control_tokens(tmp, ctrl_tokens)
                 print(f'使用nemo处理英文ok')
             except Exception as e:
                 print(f"nemo处理英文失败，改用自定义预处理")
                 print(e)
                 haserror=True
-                tmp=num2text(text)
+                tmp = num2text(protected_text)
+                tmp = _restore_control_tokens(tmp, ctrl_tokens)
 
-        if len(tmp)>200:
-            tmp_res=split_text_by_punctuation(tmp)
+        if len(tmp)>max_len:
+            tmp_res=split_text_by_punctuation(tmp, min_length=min_len)
             result=result+tmp_res
         else:
             result.append(tmp)
     return result
 
 # 切分长行 200 150
-def split_text_by_punctuation(text):
-    # 定义长度限制
-    min_length = 150
+def split_text_by_punctuation(text, min_length=150):
     punctuation_marks = "。？！，、；：”’》」』）】…—"
     english_punctuation = ".?!,:;)}…"
 

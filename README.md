@@ -13,6 +13,11 @@
 
 **界面预览**
 
+> [!NOTE]
+> new UI: 更好的 UI/UX 设计, 支持批量结果操作, 快捷插入语气等等
+
+![new-UI](ChatTTS-NEWUI.png)
+
 ![image](https://github.com/jianchang512/ChatTTS-ui/assets/3378335/669876cf-5061-4d7d-86c5-3333d0882ee8)
 
 

@@ -2,145 +2,311 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-	<title>ChatTTS WebUI & API - v{{version}}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChatTTS WebUI & API - v{{version}}</title>
     <link href="/static/js/bootstrap.min.css" rel="stylesheet">
-	
-	<style>
-	#upload-btn{
-		position:relative;
-	}
-	#file-input{
-		position:absolute;
-		left:0;
-		right:0;
-		top:0;
-		bottom:0;
-		width:100%;
-		height:100%;
-		z-index:1;
-		opacity:0;
-		cursor:pointer;
-		font-size:0;
-		
-	}
-	#text-input{
-		min-height:200px
-	}
+    <style>
+        :root {
+            --border-color: #000;
+            --border-width: 3px;
+            --shadow-offset: 5px;
+            --bg-color: #e0e7ff;
+            --col-config: 340px;
+            --col-result: 340px;
+        }
+        
+        body {
+            background-color: var(--bg-color);
+            font-family: 'Courier New', Courier, monospace;
+            color: #000;
+            height: 100vh;
+            overflow: hidden;
+            background-image: radial-gradient(#000 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
 
-    .btn-warning {
-      background-color: #ffc107;
-      border-color: #ffc107;
-    }
-	.font12{
-		font-size:12px
-	}
-	.w-50px{
-		display:inline-block;
-		width:50px;
-		white-space:nowrap;
-		overflow:visible
-	}
-	
-	</style>
+        .app-container { padding: 15px 25px; height: 100vh; display: flex; flex-direction: column; }
+
+        .header-bar {
+            flex: 0 0 auto; margin-bottom: 15px; background: #fff;
+            border: var(--border-width) solid #000; box-shadow: 4px 4px 0 #000;
+            padding: 10px 20px; display: flex; justify-content: space-between; align-items: center;
+        }
+
+        .main-grid { flex: 1; display: flex; gap: 0; min-height: 0; }
+
+        .panel-column {
+            background: #fff; border: var(--border-width) solid #000;
+            box-shadow: var(--shadow-offset) var(--shadow-offset) 0 #000;
+            display: flex; flex-direction: column; height: 100%; overflow: hidden; min-width: 200px;
+        }
+        .config-col { width: var(--col-config); flex-shrink: 0; }
+        .main-col { flex: 1; min-width: 300px; }
+        .result-col { width: var(--col-result); flex-shrink: 0; }
+
+        .splitter {
+            width: 8px; cursor: col-resize; flex-shrink: 0; transition: background 0.2s;
+            background: linear-gradient(90deg, #ccc 1px, transparent 1px, transparent 3px, #ccc 3px);
+        }
+        .splitter:hover, .splitter.dragging { background: #ff90e8; }
+
+        @media (max-width: 1000px) {
+            body { overflow: auto; height: auto; }
+            .app-container { height: auto; display: block; padding: 10px; }
+            .main-grid { display: flex; flex-direction: column; gap: 20px; height: auto; }
+            .config-col, .main-col, .result-col { width: 100% !important; height: auto !important; }
+            /* Mobile order: workspace (main) -> config -> result */
+            .main-col { order: 1; }
+            .config-col { order: 2; }
+            .result-col { order: 3; }
+            .splitter { display: none; }
+            .panel-column { height: auto !important; max-height: none !important; overflow: visible !important; }
+            #text-input { min-height: 250px; }
+        }
+
+        .panel-header {
+            padding: 10px 15px; border-bottom: var(--border-width) solid #000;
+            font-weight: 900; font-size: 1rem; text-transform: uppercase;
+            display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;
+        }
+        .panel-body { padding: 15px; overflow-y: auto; flex: 1; }
+
+        .header-config { background-color: #a5f3fc; }
+        .header-main   { background-color: #ff90e8; }
+        .header-result { background-color: #fde047; }
+
+        .section-label {
+            font-size: 0.75rem; font-weight: 800; color: #444; text-transform: uppercase;
+            margin: 15px 0 8px 0; border-bottom: 2px solid #eee; padding-bottom: 4px;
+        }
+        .section-label:first-child { margin-top: 0; }
+
+        .form-control, .form-select {
+            border: 2px solid #000 !important; border-radius: 0 !important;
+            font-weight: 600; padding: 8px; font-size: 0.9rem;
+        }
+        .form-control:focus, .form-select:focus {
+            outline: none; box-shadow: 3px 3px 0 rgba(0,0,0,0.8); background: #fff; border-color: #000;
+        }
+
+        .editor-wrap { display: flex; flex: 1; border: 2px solid #000; background: #fff; min-height: 150px; }
+        .line-numbers {
+            background: #f5f5f5; border-right: 2px solid #000; padding: 10px 8px;
+            text-align: right; font-size: 0.9rem; line-height: 1.5; color: #888; user-select: none; overflow: hidden;
+        }
+        .editor-wrap textarea {
+            flex: 1; border: none !important; resize: none; font-size: 0.95rem;
+            line-height: 1.5; padding: 10px; outline: none; font-family: inherit;
+        }
+
+        .btn { border: 2px solid #000; border-radius: 0; font-weight: 800; text-transform: uppercase; padding: 6px 12px; font-size: 0.85rem; }
+        .btn:hover { filter: brightness(1.05); }
+        .btn:active { filter: brightness(0.95); }
+
+        .btn-main { background: #000; color: #fff; width: 100%; padding: 14px; font-size: 1.1rem; letter-spacing: 1px; box-shadow: 4px 4px 0 #555; }
+        .btn-main:hover { color: #fde047; background: #222; }
+
+        .btn-tag { background: #fff; font-size: 0.8rem; padding: 4px 8px; margin: 0 4px 4px 0; box-shadow: 2px 2px 0 #ddd; }
+        .btn-tag:hover { background: #fde047; box-shadow: 2px 2px 0 #000; }
+
+        input[type=range] { width: 100%; height: 20px; -webkit-appearance: none; background: transparent; cursor: pointer; margin: 5px 0; }
+        input[type=range]::-webkit-slider-runnable-track { height: 4px; background: #000; }
+        input[type=range]::-webkit-slider-thumb { height: 16px; width: 16px; background: #ff90e8; border: 2px solid #000; -webkit-appearance: none; margin-top: -6px; }
+
+        .audio-item { border: 2px solid #000; background: #fff; margin-bottom: 10px; padding: 10px; box-shadow: 3px 3px 0 #ddd; font-size: 0.85rem; position: relative; }
+        .audio-item:hover { box-shadow: 4px 4px 0 #000; }
+        .audio-item.selected { background: #fef3c7; border-color: #f59e0b; }
+        .audio-item .item-checkbox { position: absolute; top: 8px; left: 8px; width: 18px; height: 18px; cursor: pointer; accent-color: #000; }
+
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f5f5f5; }
+        ::-webkit-scrollbar-thumb { background: #000; }
+
+        .tip-icon {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 16px; height: 16px; border-radius: 50%; background: #000; color: #fff;
+            font-size: 10px; font-weight: bold; cursor: help; margin-left: 4px; vertical-align: middle;
+        }
+        .input-label { font-size: 0.7rem; font-weight: 700; color: #555; margin-bottom: 2px; display: block; }
+
+        #upload-btn { position: relative; overflow: hidden; }
+        #file-input { position: absolute; top:0; left:0; width:100%; height:100%; opacity:0; cursor:pointer; z-index:10; }
+
+        .github-links a { margin-left: 10px; font-size: 0.85rem; font-weight: 700; color: #000; text-decoration: none; padding: 6px 10px; border: 2px solid #000; background: #fff; }
+        .github-links a:hover { background: #fde047; }
+
+        .batch-toolbar { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 10px; padding: 8px; background: #f5f5f5; border: 2px solid #000; }
+        .batch-toolbar .btn { font-size: 0.7rem; padding: 4px 8px; }
+        .batch-toolbar .select-count { font-size: 0.75rem; font-weight: 700; margin-left: auto; align-self: center; }
+
+        .dl-btn { min-width: 32px; }
+        .dl-btn .full-text { display: none; }
+        @media (min-width: 1200px) { .dl-btn .full-text { display: inline; } .dl-btn .short-text { display: none; } }
+    </style>
 </head>
-<body>	
+<body>
 
-<div class="container my-4 px-0">
-	<div>
-		<h1 class="text-center">ChatTTS WebUI & API<span class="fs-6">(v{{version}})</span></h1>
-	</div>
-	<hr>
-    <div class="row justify-content-center">
-<div class="col-12  my-2">
-    <textarea id="text-input" class="form-control d-block" rows="3" placeholder="Enter the text to be converted here, synthesize by line..."></textarea>
-    <span class="text-secondary fs-6">Besides the textbox being required, all others are optional. If you do not understand, no need to fill out.</span>
-</div>
-<div class="col-12 my-2 ">
-    <div class="row align-items-center gx-1">
-        <div class="col align-items-center input-group">
-            <span class="input-group-text">Select Voice</span>
-            <select id="voice" class="form-control">
-                {% for speaker in speakers %}
-							<option value="{{speaker}}">{{speaker}}</option>
-						{% endfor %}
-            </select>
+<div class="app-container">
+    <div class="header-bar">
+        <div class="d-flex align-items-center gap-2">
+            <h1 class="m-0" style="font-weight:900; font-size:1.5rem;">CHAT_TTS <span style="color:#ff90e8">UI</span></h1>
+            <span class="badge bg-warning text-dark border border-dark rounded-0 p-1" style="font-size:0.7rem;">v{{version}}</span>
         </div>
-        <div class="col align-items-center input-group">
-            <span class="input-group-text" id="">Voice Value</span>
-            <input id="custom_voice" data-toggle="tooltip" title="If filled in, the voice selection on the left will be ignored, and the voice will be obtained with this filled-in value, e.g., 2000, 8000, etc." class="form-control" placeholder="Custom voice seed value, greater than 1, such as 3000, 9000, etc." type="number" min="0" />
-        </div>
-        <div class="col align-items-center input-group">
-            <span class="input-group-text  rounded-0 px-1" id="">text seed</span>
-            <input id="text_seed" class="form-control  rounded-0 " value="42" type="number" min="0" >
-        </div>
-        <div class="col align-items-center input-group"> 
-            <span class="input-group-text" id="">Prompt</span>
-            <input id="prompt" class="form-control" value="[break_6]" data-toggle="tooltip" title="Fill in the prompt, such as [oral_2][laugh_0][break_6]" placeholder="For example [oral_2][laugh_0][break_6]" />
-        </div>
-        
-        <div class="col-2 align-items-center">
-          <div class="form-check" title="If control characters have been added to the text or the effect is poor, you can try selecting this option" data-toggle="tooltip">
-            <input type="checkbox" checked class="form-check-input" id="skip_refine">
-            <label class="form-check-label" for="skip_refine">Skip Refine Text</label>
-          </div>
+        <div class="github-links">
+            <a href="https://github.com/jianchang512/chatTTS-ui" target="_blank">ChatTTS-UI</a>
+            <a href="https://github.com/2noise/ChatTTS" target="_blank">ChatTTS</a>
+            <a href="javascript:void(0)" id="save-workspace-btn">Save</a>
+            <a href="/?lang=zh">中文</a>
+            <a href="/?lang=en">EN</a>
         </div>
     </div>
-</div>
-		<div class="col-12 my-2 d-flex align-items-center justify-content-between" id="temper_wrap">
-    <div class="row gx-1">
-    <div class="align-items-center col d-flex">
-            <span class="input-group-text  rounded-0 px-1" id="">infer token</span>
-            <input id="infer_max_new_token" data-toggle="tooltip" class="form-control rounded-0 " value="2048" type="number" min="1024"  title="Maximum inference token, default 2048">
-    </div>
-    <div class="align-items-center col d-flex">
-            <span class="input-group-text  rounded-0 px-1" id="">refine token</span>
-            <input id="refine_max_new_token" data-toggle="tooltip" class="form-control  rounded-0 " value="384" type="number" min="1" title="Maximum refine text token, default 384, effective when not skipping refine text">
-    </div>
-    <div class="form-group d-flex col-auto align-items-center">
-        <label for="speed">Speed</label>
-        <input type="range" class="form-control-range" id="speed" min="1" max="9" step="1" value="5">
-        <span class="w-50px text-secondary font12">5</span>
-    </div>
-    
-    <div class="form-group d-flex col align-items-center">
-        <label for="temperature">temperature</label>
-        <input type="range" class="form-control-range" id="temperature" min="0.00001" max="1.0" step="0.00001" value="0.1">
-        <span class="w-50px text-secondary font12">0.1</span>
-    </div>
-    
-    <div class="form-group d-flex col align-items-center">
-        <label for="top_p">top_p</label>
-        <input type="range" class="form-control-range" id="top_p" min="0.001" max="0.9" step="0.05" value="0.7">
-        <span class="w-50px text-secondary font12">0.05</span>
 
+    <div class="main-grid">
+        <!-- Config Column -->
+        <div class="panel-column config-col" id="config-col">
+            <div class="panel-header header-config"><span>Config</span><span>⚙️</span></div>
+            <div class="panel-body">
+                <div class="section-label">Voice Settings</div>
+                <select id="voice" class="form-select mb-2">
+                    {% for speaker in speakers %}
+                    <option value="{{speaker}}">{{speaker}}</option>
+                    {% endfor %}
+                </select>
+                <div class="row g-2 mb-2">
+                    <div class="col-6">
+                        <label class="input-label">Custom Voice ID <span class="tip-icon" title="Overrides voice selection. Use values like 2000, 8000">?</span></label>
+                        <input id="custom_voice" type="number" class="form-control" placeholder="e.g. 3000">
+                    </div>
+                    <div class="col-6">
+                        <label class="input-label">Text Seed <span class="tip-icon" title="Random seed for text generation">?</span></label>
+                        <input id="text_seed" type="number" class="form-control" value="42">
+                    </div>
+                </div>
+
+                <div class="section-label">Model Parameters</div>
+                <div class="mb-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="input-label mb-0">Speed <span class="tip-icon" title="Speech speed: 1=slowest, 9=fastest">?</span></span>
+                        <span class="badge bg-dark rounded-0" id="val-speed">5</span>
+                    </div>
+                    <input type="range" id="speed" min="1" max="9" value="5" oninput="document.getElementById('val-speed').innerText=this.value">
+                </div>
+                <div class="mb-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="input-label mb-0">Temp <span class="tip-icon" title="Sampling temperature: higher=more random">?</span></span>
+                        <span class="badge bg-dark rounded-0" id="val-temp">0.1</span>
+                    </div>
+                    <input type="range" id="temperature" min="0.00001" max="1.0" step="0.05" value="0.1" oninput="document.getElementById('val-temp').innerText=parseFloat(this.value).toFixed(2)">
+                </div>
+                <div class="row g-2 mb-2">
+                    <div class="col-6">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="input-label mb-0">Top P <span class="tip-icon" title="Nucleus sampling parameter">?</span></span>
+                            <span class="small" id="val-topp">0.7</span>
+                        </div>
+                        <input type="range" id="top_p" min="0.1" max="0.9" step="0.05" value="0.7" oninput="document.getElementById('val-topp').innerText=parseFloat(this.value).toFixed(2)">
+                    </div>
+                    <div class="col-6">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="input-label mb-0">Top K <span class="tip-icon" title="Limits candidate tokens per step">?</span></span>
+                            <span class="small" id="val-topk">20</span>
+                        </div>
+                        <input type="range" id="top_k" min="1" max="20" value="20" oninput="document.getElementById('val-topk').innerText=this.value">
+                    </div>
+                </div>
+
+                <div class="section-label">Prompt & Advanced</div>
+                <label class="input-label">Refine Prompt <span class="tip-icon" title="Tone control: [oral_N] casualness(0-9), [laugh_N] laughter(0-2), [break_N] pause(0-7)">?</span></label>
+                <textarea id="prompt" class="form-control mb-2" rows="2" style="font-size:0.85rem;">[oral_2][laugh_0][break_6]</textarea>
+                
+                <button class="btn w-100 border-dark bg-light text-start py-2" type="button" data-bs-toggle="collapse" data-bs-target="#advConfig">▼ Advanced Options</button>
+                <div class="collapse" id="advConfig">
+                    <div class="card card-body border-dark rounded-0 p-2 bg-light mt-2">
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <label class="input-label">Seg Length <span class="tip-icon" title="Max chars per segment, 0=auto">?</span></label>
+                                <input id="segment_len" type="number" class="form-control" value="0">
+                            </div>
+                            <div class="col-6">
+                                <label class="input-label">Seg Duration(s) <span class="tip-icon" title="Target duration per segment">?</span></label>
+                                <input id="segment_seconds" type="number" class="form-control" value="0">
+                            </div>
+                            <div class="col-6">
+                                <label class="input-label">Infer Token <span class="tip-icon" title="Max inference tokens, default 2048">?</span></label>
+                                <input id="infer_max_new_token" type="number" class="form-control" value="2048">
+                            </div>
+                            <div class="col-6">
+                                <label class="input-label">Refine Token <span class="tip-icon" title="Max refine tokens, default 384">?</span></label>
+                                <input id="refine_max_new_token" type="number" class="form-control" value="384">
+                            </div>
+                        </div>
+                        <div class="form-check mt-2">
+                            <input type="checkbox" class="form-check-input border-dark" id="skip_refine" checked>
+                            <label class="form-check-label small fw-bold" for="skip_refine">Skip Refine Text <span class="tip-icon" title="Enable if text has control tokens">?</span></label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="splitter" id="splitter1"></div>
+
+        <!-- Main Column -->
+        <div class="panel-column main-col" id="main-col">
+            <div class="panel-header header-main"><span>Workspace</span><span>📝</span></div>
+            <div class="panel-body d-flex flex-column">
+                <div class="editor-wrap mb-3">
+                    <div class="line-numbers" id="line-numbers">1</div>
+                    <textarea id="text-input" placeholder="Enter text to convert...&#10;One sentence per line recommended..."></textarea>
+                </div>
+
+                <div class="d-flex align-items-center justify-content-between mb-1">
+                    <div class="section-label mt-0 mb-0" style="border:none;">Quick Tokens <span class="tip-icon" title="Click to insert. [laugh] laughter [uv_break] pause. Use Refine Prompt for [oral_N]/[laugh_N]/[break_N] tone control.">?</span></div>
+                    <button id="format-tokens-btn" class="btn btn-sm btn-light border-dark py-1 px-2" style="font-size:0.7rem;" title="Format spacing between tokens and text">✨ Format</button>
+                </div>
+                <div class="d-flex flex-wrap mb-3">
+                    <button class="btn btn-tag tts-token-btn" data-token="[laugh]">[laugh]</button>
+                    <button class="btn btn-tag tts-token-btn" data-token="[uv_break]">[uv_break]</button>
+                </div>
+
+                <div class="section-label">Tone Presets</div>
+                <div class="d-flex gap-2 mb-3">
+                    <button class="btn btn-light flex-fill border-dark tone-preset-btn py-2" data-prompt="[oral_2][laugh_0][break_6]">😊 Chat</button>
+                    <button class="btn btn-light flex-fill border-dark tone-preset-btn py-2" data-prompt="[oral_0][break_4]">🎙️ Broadcast</button>
+                    <button class="btn btn-light flex-fill border-dark tone-preset-btn py-2" data-prompt="[oral_3][laugh_1][break_3]">🎭 Dramatic</button>
+                </div>
+
+                <button id="submit-btn" class="btn btn-main mb-2">⚡ Generate</button>
+                
+                <button id="upload-btn" class="btn btn-light border-dark py-2 w-100">
+                    📂 Import TXT File
+                    <input type="file" id="file-input" accept=".txt">
+                </button>
+            </div>
+        </div>
+
+        <div class="splitter" id="splitter2"></div>
+
+        <!-- Result Column -->
+        <div class="panel-column result-col" id="result-col">
+            <div class="panel-header header-result"><span>Results</span><span>🎵</span></div>
+            <div class="panel-body">
+                <div class="batch-toolbar" id="batch-toolbar" style="display:none;">
+                    <button id="select-all-btn" class="btn btn-dark">All</button>
+                    <button id="deselect-all-btn" class="btn btn-light border-dark">None</button>
+                    <button id="delete-selected-btn" class="btn text-white" style="background:#dc3545;">Delete</button>
+                    <button id="download-selected-btn" class="btn btn-success border-dark">Download</button>
+                    <span class="select-count" id="select-count">0 selected</span>
+                </div>
+                <div id="audio-container">
+                    <div class="text-center text-muted mt-4" id="empty-state">
+                        <div style="font-size:3rem; opacity:0.15;">∅</div>
+                        <div class="small">No audio generated</div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-    
-    <div class="form-group d-flex col align-items-center">
-        <label for="top_k">top_k</label>
-        <input type="range" class="form-control-range" id="top_k" min="1" max="20" step="1" value="20">
-        <span class="w-50px text-secondary font12">20</span>
-        
-    </div>			
-    </div>
-</div>
-<div class="col-12  my-4 text-center">
-    <button id="submit-btn" class="btn btn-primary">Synthesize Voice Now</button>
-    <button id="upload-btn" class="btn btn-secondary">Import txt
-        <input type="file" id="file-input" accept=".txt"  >
-    </button>
-    <button id="clear-btn" class="btn btn-warning text-light" data-toggle="tooltip" title="Delete all generated wav files">Clear all wav files</button>
-</div>
-<div class="col-12  mt-4" >
-    <div class="row" id="audio-container"></div>
-    <div class="m-2 bg-black text-white d-none" id="code"></div>
-</div>
-    </div>
-	
-	<div class="text-center my-4">
-		<a class="btn btn-link text-secondary" href="https://github.com/jianchang512/chatTTS-ui" target="_blank">GitHub ChatTTS-UI</a>
-		<a class="btn btn-link text-secondary" href="https://github.com/2noise/ChatTTS" target="_blank">GitHub ChatTTS</a>
-	</div>
 </div>
 
 <script src="/static/js/jquery.min.js"></script>
@@ -148,159 +314,373 @@
 <script src="/static/js/bootstrap.bundle.min.js"></script>
 <script>
 $(document).ready(function() {
-  $('[data-toggle="tooltip"]').tooltip();
+    var $textarea = $('#text-input'), $lineNums = $('#line-numbers');
+    var LS_KEY = 'chattts_workspace_v1';
+    var saveTimer = null;
 
-    let audioGenerated = false;
+    function updateLineNumbers() {
+        var lines = $textarea.val().split('\n').length;
+        var nums = [];
+        for (var i = 1; i <= Math.max(lines, 1); i++) nums.push(i);
+        $lineNums.html(nums.join('<br>'));
+    }
+    $textarea.on('input scroll', function() { updateLineNumbers(); $lineNums.scrollTop($textarea.scrollTop()); });
+    updateLineNumbers();
 
-  $('#temper_wrap input[type="range"]').on('input',function(){
-	$(this).next().text(($(this).val()));
-  });
-    $('#submit-btn').click(function() {
-        var text = $('#text-input').val().trim();
-        if (text === '') {
-            layer.alert('Must enter text',{title:false});
-        } else {
-			let index=layer.load();
-			let custom_voice=$('#custom_voice').val();
-			/*
-			text_list=text.split("\n").map(it=>{
-				it=it.trim()
-				if(it.length>150 && /。/.test(it)){
-					return it.replace(/。/g,"。\n")
-				}
-				return it    
-			});
-			text=text_list.join("")
-			*/
-			let data={
-				text: text,
-				prompt:$('#prompt').val(),
-				voice:$('#voice').val(),
-				speed:parseInt($('#speed').val()),
-				temperature:parseFloat($('#temperature').val()),
-				top_p:parseFloat($('#top_p').val()),
-				top_k:parseFloat($('#top_k').val()),
-				refine_max_new_token:parseInt($('#refine_max_new_token').val()),
-				infer_max_new_token:parseInt($('#infer_max_new_token').val()),
-				text_seed:parseInt($(text_seed).val()),
-				skip_refine:$('#skip_refine').prop('checked')?1:0,
-				custom_voice:custom_voice?parseInt(custom_voice):0
-			};
-      $.ajax({
-        url: '/tts',
-        type: 'POST',
-        data: data,
-        timeout: 3600000,
-        success: function(response) {
-          if (response.code === 0) {
-            console.log(response);
-            if (response.audio_files) {
-              response.audio_files.forEach(function(audio, index) {
-                let pos = audio.filename.lastIndexOf('/') + 1;
-                let filename = audio.filename.substr(pos);
-                let jsCode = `# API Call Code
+    function collectWorkspaceState() {
+        return {
+            text: $textarea.val(),
+            prompt: $('#prompt').val(),
+            voice: $('#voice').val(),
+            custom_voice: $('#custom_voice').val(),
+            text_seed: $('#text_seed').val(),
+            speed: $('#speed').val(),
+            temperature: $('#temperature').val(),
+            top_p: $('#top_p').val(),
+            top_k: $('#top_k').val(),
+            segment_len: $('#segment_len').val(),
+            segment_seconds: $('#segment_seconds').val(),
+            infer_max_new_token: $('#infer_max_new_token').val(),
+            refine_max_new_token: $('#refine_max_new_token').val(),
+            skip_refine: $('#skip_refine').prop('checked') ? 1 : 0,
+        };
+    }
 
-import requests
+    function applyWorkspaceState(st) {
+        if (!st) return;
+        if (typeof st.text === 'string') {
+            $textarea.val(st.text);
+        }
+        if (st.prompt !== undefined) $('#prompt').val(st.prompt);
+        if (st.voice !== undefined) $('#voice').val(st.voice);
+        if (st.custom_voice !== undefined) $('#custom_voice').val(st.custom_voice);
+        if (st.text_seed !== undefined) $('#text_seed').val(st.text_seed);
+        if (st.speed !== undefined) {
+            $('#speed').val(st.speed);
+            $('#val-speed').text(st.speed);
+        }
+        if (st.temperature !== undefined) {
+            $('#temperature').val(st.temperature);
+            $('#val-temp').text(parseFloat(st.temperature).toFixed(2));
+        }
+        if (st.top_p !== undefined) {
+            $('#top_p').val(st.top_p);
+            $('#val-topp').text(parseFloat(st.top_p).toFixed(2));
+        }
+        if (st.top_k !== undefined) {
+            $('#top_k').val(st.top_k);
+            $('#val-topk').text(st.top_k);
+        }
+        if (st.segment_len !== undefined) $('#segment_len').val(st.segment_len);
+        if (st.segment_seconds !== undefined) $('#segment_seconds').val(st.segment_seconds);
+        if (st.infer_max_new_token !== undefined) $('#infer_max_new_token').val(st.infer_max_new_token);
+        if (st.refine_max_new_token !== undefined) $('#refine_max_new_token').val(st.refine_max_new_token);
+        if (st.skip_refine !== undefined) $('#skip_refine').prop('checked', !!st.skip_refine);
+        updateLineNumbers();
+    }
 
-res = requests.post('http://${location.host}/tts', data=${JSON.stringify(data, null, 2)})
-print(res.json())
+    function saveWorkspaceState(showToast) {
+        if (!window.localStorage) {
+            if (showToast) layer.msg('LocalStorage not available');
+            return;
+        }
+        try {
+            localStorage.setItem(LS_KEY, JSON.stringify(collectWorkspaceState()));
+            if (showToast) layer.msg('Saved');
+        } catch (e) {
+            if (showToast) layer.msg('Save failed');
+        }
+    }
 
-#ok
-{code:0, msg:'ok', audio_files:[{filename: ${audio.filename}, url: ${audio.url}}]}
+    function scheduleAutoSave() {
+        if (!window.localStorage) return;
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(function() { saveWorkspaceState(false); }, 800);
+    }
 
-#error
-{code:1, msg:"error"}
-`;
-				let n=$('#audio-container > div').length+1;
-                $('#audio-container').prepend(`
-                  <div class="col-12 mb-2 pb-2 border-bottom">
-                    <div>						
-						[${n}] ${filename} 
-					</div>
-					<div class="d-flex align-items-center my-1">
-						<a title="Remove display wav files" href="javascripts:;" onclick="$(this).parent().parent().remove()" class="btn btn-close font12 me-2"></a>
-						<audio controls autoplay src="${audio.url}"></audio>
-					</div>
-                    <div class="d-flex align-items-center text-secondary fs-6">
-						<button class="btn btn-info text-light me-2 show-js-btn" data-js-code="${encodeURIComponent(jsCode)}">Show API Calls</button>
-						<span>
-						inference time: ${audio.inference_time}s
-						</span>
-					</div>
-                    <div class="m-2 bg-black text-white d-none code-container p-1"></div>
-                  </div>
-                `);
-              });
-
-              audioGenerated = true;
-            } else {
-              layer.alert('Audio file generation failure', {title: false});
+    if (window.localStorage) {
+        try {
+            var rawState = localStorage.getItem(LS_KEY);
+            if (rawState) {
+                applyWorkspaceState(JSON.parse(rawState));
             }
-          } else {
-            layer.alert(response.msg, {title: false});
-          }
-        },
-        error: function(xhr, status, error) {
-          layer.alert('error occurs: ' + error, {title: false});
-        },
-        complete: function() {
-          layer.close(index);
+        } catch (e) {}
+    }
+
+    function initSplitter(sid, leftId, rightId, minL, minR) {
+        var $sp = $('#'+sid), $l = $('#'+leftId), $r = $('#'+rightId), drag = false;
+        $sp.on('mousedown', function(e) {
+            e.preventDefault(); drag = true; $sp.addClass('dragging');
+            $(document).on('mousemove.sp', function(e) {
+                if (!drag) return;
+                var cL = $('.main-grid').offset().left, cW = $('.main-grid').width();
+                if (sid === 'splitter1') { var nw = Math.max(minL, Math.min(e.pageX - cL, cW - minR - 350)); $l.css('width', nw+'px'); }
+                else { var nw = Math.max(minR, Math.min(cL + cW - e.pageX, cW - minL - 350)); $r.css('width', nw+'px'); }
+            });
+            $(document).on('mouseup.sp', function() { drag = false; $sp.removeClass('dragging'); $(document).off('.sp'); });
+        });
+    }
+    initSplitter('splitter1', 'config-col', 'main-col', 200, 250);
+    initSplitter('splitter2', 'main-col', 'result-col', 250, 200);
+
+    function insertToken($ta, token) {
+        var el = $ta.get(0); if (!el) return;
+        var start = el.selectionStart || 0, end = el.selectionEnd || start;
+        var val = el.value, before = start > 0 ? val.charAt(start - 1) : '', after = end < val.length ? val.charAt(end) : '';
+        var ins = token;
+        if (start > 0 && !/[\s\[\]]/.test(before)) ins = ' ' + ins;
+        if (end < val.length && !/[\s\[]/.test(after)) ins = ins + ' ';
+        el.value = val.substring(0, start) + ins + val.substring(end);
+        el.focus();
+        var np = start + ins.length;
+        el.selectionStart = el.selectionEnd = np;
+        updateLineNumbers();
+    }
+
+    function formatTokens(text) {
+        // Normalize tokens on each line, without touching explicit line breaks.
+        var lines = text.split('\n');
+        for (var i = 0; i < lines.length; i++) {
+            var line = lines[i];
+            line = line
+                .replace(/([^\s\[\]])(\[(?:laugh|uv_break|lbreak|oral_\d|laugh_\d|break_\d)\])/g, '$1 $2')
+                .replace(/(\[(?:laugh|uv_break|lbreak|oral_\d|laugh_\d|break_\d)\])([^\s\[\]\n])/g, '$1 $2')
+                .replace(/ {2,}/g, ' ');
+            lines[i] = line;
         }
-      });
+        return lines.join('\n');
     }
-  });
 
-  $(document).on('click', '.show-js-btn', function() {
-    let codeContainer = $(this).parent().next('.code-container');
-    codeContainer.toggleClass('d-none');
-    if (!codeContainer.hasClass('d-none')) {
-      codeContainer.html(`<pre><code>${decodeURIComponent($(this).data('js-code'))}</code></pre>`);
-    }
-  });
-
-
-	$('#upload-btn').click(function() {
-        $('#file-input').click(); // Trigger file input when upload button is clicked
+    $('#format-tokens-btn').click(function() {
+        var text = $textarea.val();
+        var formatted = formatTokens(text);
+        if (text !== formatted) { $textarea.val(formatted); updateLineNumbers(); layer.msg('Formatted'); }
+        else { layer.msg('No changes needed'); }
     });
-    
+
+    // === Workspace Save / Restore bindings ===
+    $textarea.on('input', scheduleAutoSave);
+    $('#prompt, #voice, #custom_voice, #text_seed, #speed, #temperature, #top_p, #top_k, #segment_len, #segment_seconds, #infer_max_new_token, #refine_max_new_token')
+        .on('change input', scheduleAutoSave);
+    $('#skip_refine').on('change', scheduleAutoSave);
+
+    $('#save-workspace-btn').click(function() {
+        saveWorkspaceState(true);
+    });
+
+    function escapeForCurl(val) {
+        if (val === null || val === undefined) return '';
+        var s = String(val);
+        // Escape backslashes and double quotes, flatten newlines
+        s = s.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\r?\n/g, '\\n');
+        return s;
+    }
+
+    function buildCurlCode(data) {
+        if (!data || Object.keys(data).length === 0) {
+            return 'curl -X POST "http://' + location.host + '/tts" \\\n  -d "text=YOUR_TEXT" \\\n  -d "voice=VOICE_NAME"';
+        }
+        var parts = [];
+        for (var k in data) {
+            if (!data.hasOwnProperty(k)) continue;
+            parts.push('-d "' + k + '=' + escapeForCurl(data[k]) + '"');
+        }
+        return 'curl -X POST "http://' + location.host + '/tts" \\\n  ' + parts.join(' \\\n  ');
+    }
+
+    function appendAudioItem(audio, autoPlay, curlCode, $container) {
+        $('#empty-state').remove();
+        var pos = audio.filename.lastIndexOf('/') + 1;
+        var fn = audio.filename.substr(pos);
+        var cnt = $('#audio-container').find('.audio-item').length + 1;
+        var badge = audio.is_merged === 1 ? '<span class="badge bg-success text-dark rounded-0 ms-1">Merged</span>' : (audio.part_index ? '<span class="badge bg-secondary rounded-0 ms-1">P' + audio.part_index + '</span>' : '');
+        var dur = (audio.audio_duration && audio.audio_duration > 0) ? ' | ' + audio.audio_duration + 's' : '';
+        curlCode = curlCode || buildCurlCode(null);
+        $container = $container || $('#audio-container');
+        var src = audio.relative_url || audio.url;
+
+        var html = `
+        <div class="audio-item" data-filename="${fn}">
+            <input type="checkbox" class="item-checkbox">
+            <div class="d-flex justify-content-between align-items-center mb-1" style="padding-left:24px;">
+                <div class="fw-bold text-truncate" style="max-width:75%; font-size:0.8rem;">#${cnt} ${fn}${badge}</div>
+                <button onclick="deleteWavItem(this)" class="btn btn-link text-danger p-0" style="font-size:1.2rem; line-height:1;">&times;</button>
+            </div>
+            <audio controls${autoPlay ? ' autoplay' : ''} src="${src}" style="width:100%; height:28px;"></audio>
+            <div class="d-flex justify-content-between align-items-center mt-2">
+                <div class="text-muted" style="font-size:0.75rem;">${audio.inference_time || 0}s${dur}</div>
+                <div class="d-flex gap-1">
+                    <button class="btn btn-info btn-sm py-0 px-1 rounded-0 border-dark text-white show-curl-btn" style="font-size:0.7rem;" data-curl="${encodeURIComponent(curlCode)}">API</button>
+                    <a href="${src}" download="${fn}" class="btn btn-success btn-sm py-0 px-1 rounded-0 border-dark dl-btn" style="font-size:0.7rem;"><span class="short-text">DL</span><span class="full-text">Download</span></a>
+                </div>
+            </div>
+            <div class="mt-2 bg-dark text-light d-none curl-container p-2" style="font-size:0.7rem; word-break:break-all;"></div>
+        </div>`;
+        $container.prepend(html);
+        updateBatchToolbar();
+    }
+
+    function appendAudioBatch(audioList, data) {
+        if (!audioList || audioList.length === 0) return;
+        var bIdx = $('#audio-container').find('.audio-batch').length + 1;
+        var bId = 'batch-' + Date.now();
+        var html = `
+        <div class="audio-batch mb-3" data-batch-id="${bId}">
+            <div class="bg-warning border border-dark p-1 px-2 d-flex justify-content-between align-items-center" style="font-size:0.85rem;">
+                <span class="fw-bold">BATCH #${bIdx} [${audioList.length}]</span>
+                <button class="btn btn-dark btn-sm py-0 px-1 rounded-0 delete-batch-btn" style="font-size:0.7rem;">Delete Batch</button>
+            </div>
+            <div class="batch-body p-1 border border-dark border-top-0 bg-white"></div>
+        </div>`;
+        $('#audio-container').prepend(html);
+        var $body = $('#audio-container').find('.audio-batch').first().find('.batch-body');
+        var curl = buildCurlCode(data);
+        audioList.forEach(function(a) { appendAudioItem(a, false, curl, $body); });
+    }
+
+    function loadAudioList() {
+        $.ajax({ url: '/list_wavs', type: 'GET', success: function(res) {
+            if (res.code === 0 && res.audio_files && res.audio_files.length > 0) {
+                $('#audio-container').empty();
+                var ws = collectWorkspaceState();
+                var curlDefault = buildCurlCode(ws);
+                res.audio_files.forEach(function(a) { appendAudioItem(a, false, curlDefault, null); });
+            }
+            updateBatchToolbar();
+        }});
+    }
+    loadAudioList();
+
+    function updateBatchToolbar() {
+        var total = $('#audio-container .audio-item').length;
+        var sel = $('#audio-container .item-checkbox:checked').length;
+        $('#batch-toolbar').toggle(total > 0);
+        $('#select-count').text(sel + ' selected');
+    }
+
+    $(document).on('change', '.item-checkbox', function() {
+        $(this).closest('.audio-item').toggleClass('selected', this.checked);
+        updateBatchToolbar();
+    });
+
+    $('#select-all-btn').click(function() {
+        $('#audio-container .item-checkbox').prop('checked', true).closest('.audio-item').addClass('selected');
+        updateBatchToolbar();
+    });
+
+    $('#deselect-all-btn').click(function() {
+        $('#audio-container .item-checkbox').prop('checked', false).closest('.audio-item').removeClass('selected');
+        updateBatchToolbar();
+    });
+
+    $('#delete-selected-btn').click(function() {
+        var fs = [];
+        $('#audio-container .item-checkbox:checked').each(function() { fs.push($(this).closest('.audio-item').data('filename')); });
+        if (!fs.length) { layer.msg('Select items first'); return; }
+        layer.confirm('Delete ' + fs.length + ' audio files?', {title:false, btn:['Yes','No']}, function() {
+            $.ajax({
+                url: '/delete_wavs_batch',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({filenames: fs}),
+                success: function(res) {
+                    if (res.code === 0) {
+                        fs.forEach(function(f) { $('#audio-container .audio-item[data-filename="'+f+'"]').remove(); });
+                        $('#audio-container .audio-batch').each(function() { if (!$(this).find('.audio-item').length) $(this).remove(); });
+                        updateBatchToolbar();
+                        layer.msg('Deleted ' + fs.length + ' items');
+                    }
+                }
+            });
+        });
+    });
+
+    $('#download-selected-btn').click(function() {
+        var fs = [];
+        $('#audio-container .item-checkbox:checked').each(function() { fs.push($(this).closest('.audio-item').data('filename')); });
+        if (!fs.length) { layer.msg('Select items first'); return; }
+        var $form = $('<form method="POST" action="/download_wavs_batch"></form>');
+        // Use newline separator to avoid ambiguity with commas in filenames
+        var $input = $('<input type="hidden" name="filenames">').val(fs.join('\n'));
+        $form.append($input);
+        $('body').append($form);
+        $form.submit();
+        $form.remove();
+    });
+
+    $('#submit-btn').click(function() {
+        var text = $textarea.val().trim();
+        if (!text) { layer.msg('Enter text first'); return; }
+        var idx = layer.load(1);
+        var data = {
+            text: text, prompt: $('#prompt').val(), voice: $('#voice').val(),
+            speed: parseInt($('#speed').val()), temperature: parseFloat($('#temperature').val()),
+            top_p: parseFloat($('#top_p').val()), top_k: parseInt($('#top_k').val()),
+            refine_max_new_token: parseInt($('#refine_max_new_token').val()),
+            infer_max_new_token: parseInt($('#infer_max_new_token').val()),
+            text_seed: parseInt($('#text_seed').val()),
+            skip_refine: $('#skip_refine').prop('checked') ? 1 : 0,
+            is_stream: 0, custom_voice: $('#custom_voice').val() ? parseInt($('#custom_voice').val()) : 0,
+            segment_len: parseInt($('#segment_len').val() || 0),
+            segment_seconds: parseFloat($('#segment_seconds').val() || 0), split: 1
+        };
+        $.ajax({ url: '/tts', type: 'POST', data: data,
+            success: function(res) {
+                layer.close(idx);
+                if (res.code === 0 && res.audio_files) appendAudioBatch(res.audio_files, data);
+                else layer.alert(res.msg || 'Generation failed', {title:false});
+            },
+            error: function() { layer.close(idx); layer.alert('Request error', {title:false}); }
+        });
+    });
+
+    $(document).on('click', '.show-curl-btn', function() {
+        var box = $(this).closest('.audio-item').find('.curl-container');
+        box.toggleClass('d-none');
+        if (!box.hasClass('d-none')) {
+            var code = decodeURIComponent($(this).data('curl'));
+            box.html('<pre style="margin:0; color:#a5f3fc; white-space:pre-wrap;">' + code + '</pre>');
+        }
+    });
+
+    $(document).on('click', '.tts-token-btn', function() { insertToken($textarea, $(this).data('token')); });
+    $(document).on('click', '.tone-preset-btn', function() { if ($(this).data('prompt')) $('#prompt').val($(this).data('prompt')); });
+
+    $('#upload-btn').click(function() { $('#file-input').click(); });
     $('#file-input').change(function(e) {
-        var file = e.target.files[0];
-        if(file) {
-            var reader = new FileReader();
-            reader.onload = function(e) {
-                $('#text-input').val(e.target.result);
-            };
-            reader.readAsText(file, 'UTF-8');
-        }
+        var f = e.target.files[0];
+        if (f) { var r = new FileReader(); r.onload = function(e) { $textarea.val(e.target.result); updateLineNumbers(); }; r.readAsText(f, 'UTF-8'); }
     });
 
-    $('#clear-btn').click(function() {
-    layer.confirm('Whether to clear all wav files', {
-      btn: ['Yes', 'No'],
-	  title:false
-    }, function() {
-	  layer.msg('in the process of liquidation...')	 
-      $.ajax({
-        url: '/clear_wavs',
-        type: 'POST',
-        success: function(response) {
-          if (response.code === 0) {
-		    $('#audio-container').html('')
-            layer.alert('Clearance successful.', {title: false});
-          } else {
-            layer.alert('Clearance error.: ' + response.msg, {title: false});
-          }
-        },
-        error: function(xhr, status, error) {
-          layer.alert('error occurs: ' + error, {title: false});
-        }
-      });
+    $(document).on('click', '.delete-batch-btn', function() {
+        var $b = $(this).closest('.audio-batch'), fs = [];
+        $b.find('.audio-item').each(function() { fs.push($(this).data('filename')); });
+        if (!fs.length) { $b.remove(); return; }
+        layer.confirm('Delete batch?', {title:false}, function() {
+            $.ajax({
+                url: '/delete_wavs_batch',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({filenames: fs}),
+                success: function(res) {
+                    if (res.code === 0) { $b.remove(); updateBatchToolbar(); layer.msg('Deleted'); }
+                }
+            });
+        });
     });
-  });
 
+    window.deleteWavItem = function(btn) {
+        var $i = $(btn).closest('.audio-item'), f = $i.data('filename');
+        if (!f) return;
+        $.ajax({ url: '/delete_wav', type: 'POST', data: {filename: f}, success: function(res) {
+            if (res.code === 0) { $i.remove(); updateBatchToolbar(); }
+        }});
+    };
 
+    $('[title]').each(function() { $(this).attr('data-bs-toggle', 'tooltip').attr('data-bs-placement', 'top'); });
+    var ttList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    ttList.map(function(el) { return new bootstrap.Tooltip(el); });
 });
 </script>
-
-
-</body></html>
+</body>
+</html>

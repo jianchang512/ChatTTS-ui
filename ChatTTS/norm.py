@@ -126,6 +126,13 @@ class Normalizer:
             }
         )
 
+        # 控制符保护: 识别 ChatTTS 的控制 token, 包括带数字下标的形式
+        # 这些 token 需要在归一化/同音字替换过程中完全保留原样
+        self.ctrl_pattern = re.compile(
+            r"\[(uv_break|laugh|lbreak|break|oral_\d+|laugh_\d+|break_\d+)\]",
+            re.I,
+        )
+
     def __call__(
         self,
         text: str,
@@ -133,27 +140,41 @@ class Normalizer:
         do_homophone_replacement=True,
         lang: Optional[Literal["zh", "en"]] = None,
     ) -> str:
+        # 如果既不做文本归一化也不做同音字替换，则直接返回原文，避免误删控制符等特殊标记
+        if not do_text_normalization and not do_homophone_replacement:
+            return text
+
+        # 在做任何内部归一化之前, 先对控制符做占位保护, 避免它们在
+        # _count_invalid_characters / reject_pattern / 同音字替换 中被误删或改写。
+        protected_text, ctrl_tokens = self._protect_control_tokens(text)
+
         if do_text_normalization:
-            _lang = self._detect_language(text) if lang is None else lang
+            _lang = self._detect_language(protected_text) if lang is None else lang
             if _lang in self.normalizers:
-                text = self.normalizers[_lang](text)
+                protected_text = self.normalizers[_lang](protected_text)
             if _lang == "zh":
-                text = self._apply_half2full_map(text)
-        invalid_characters = self._count_invalid_characters(text)
+                protected_text = self._apply_half2full_map(protected_text)
+
+        invalid_characters = self._count_invalid_characters(protected_text)
         if len(invalid_characters):
             self.logger.warning(f"found invalid characters: {invalid_characters}")
-            text = self._apply_character_map(text)
+            protected_text = self._apply_character_map(protected_text)
+
         if do_homophone_replacement:
             arr, replaced_words = _fast_replace(
                 self.homophones_map,
-                text.encode(self.coding),
+                protected_text.encode(self.coding),
             )
             if replaced_words:
-                text = arr.tobytes().decode(self.coding)
+                protected_text = arr.tobytes().decode(self.coding)
                 repl_res = ", ".join([f"{_[0]}->{_[1]}" for _ in replaced_words])
                 self.logger.info(f"replace homophones: {repl_res}")
+
         if len(invalid_characters):
-            text = self.reject_pattern.sub("", text)
+            protected_text = self.reject_pattern.sub("", protected_text)
+
+        # 恢复控制符占位符, 保证输出中控制符仍然是原始形式
+        text = self._restore_control_tokens(protected_text, ctrl_tokens)
         return text
 
     def register(self, name: str, normalizer: Callable[[str], str]) -> bool:
@@ -207,3 +228,61 @@ class Normalizer:
             return "zh"
         else:
             return "en"
+
+    # ---- 控制符占位保护相关的内部方法 ----
+
+    def _encode_index(self, i: int) -> str:
+        """Encode numeric index into A-Z string, using only letters (安全字符)."""
+
+        if i < 0:
+            i = 0
+        chars: List[str] = []
+        while True:
+            chars.append(chr(ord("A") + (i % 26)))
+            i //= 26
+            if i == 0:
+                break
+        chars.reverse()
+        return "".join(chars)
+
+    def _decode_index(self, tag: str) -> int:
+        """Inverse of _encode_index, restore numeric index from A-Z string."""
+
+        idx = 0
+        for ch in tag:
+            idx = idx * 26 + (ord(ch) - ord("A"))
+        return idx
+
+    def _protect_control_tokens(self, text: str) -> Tuple[str, List[str]]:
+        """Replace [control] tokens with letter-only placeholders and return (new_text, tokens).
+
+        占位符仅使用 A-Z 字母, 避免被 reject_pattern 当作非法字符删除, 也不会被
+        homophones_map 命中, 因为其中只包含中文字符。
+        """
+
+        tokens: List[str] = []
+
+        def repl(m: re.Match) -> str:
+            full = m.group(0)  # 包含 [ ] 的完整 token
+            idx = len(tokens)
+            tokens.append(full)
+            tag = self._encode_index(idx)
+            # 使用字母组成的占位符, 形如 CTRL{TAG}Z, 不包含数字/下划线/中括号
+            return f"CTRL{tag}Z"
+
+        protected = self.ctrl_pattern.sub(repl, text)
+        return protected, tokens
+
+    def _restore_control_tokens(self, text: str, tokens: List[str]) -> str:
+        """Restore CTRL{TAG}Z placeholders back to original [control] tokens."""
+
+        pattern = re.compile(r"CTRL([A-Z]+)Z")
+
+        def repl(m: re.Match) -> str:
+            tag = m.group(1)
+            idx = self._decode_index(tag)
+            if 0 <= idx < len(tokens):
+                return tokens[idx]
+            return m.group(0)
+
+        return pattern.sub(repl, text)
