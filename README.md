@@ -1,27 +1,15 @@
 
-[English README](README_EN.md) | [打赏项目](https://github.com/jianchang512/ChatTTS-ui/issues/122) | [Discord Discussion Group](https://discord.gg/y9gUweVCCJ)
+[English README](README_EN.md)
 
 
 # ChatTTS webUI & API 
 
-一个简单的本地网页界面，在网页使用 ChatTTS 将文字合成为语音，支持中英文、数字混杂，并提供API接口.
+一个简单的本地网页界面，在网页使用 ChatTTS 将文字合成为语音，支持中英文、数字混杂，并提供API接口。
+
+> 原始[ChatTTS](https://github.com/2noise/chattts)项目
 
 
-原 [ChatTTS](https://github.com/2noise/chattts) 项目. 0.96版起，源码部署必须先安装ffmpeg ,之前的音色文件csv和pt已不可用，请填写音色值重新生成.[获取音色](?tab=readme-ov-file#音色获取)
 
-
-> **[赞助商]**
-> 
-> [![](https://github.com/user-attachments/assets/e3e2e6f9-e2e4-44e4-860b-9d1ce5b53d4f)](https://302.ai/)
->  [302.AI](https://302.ai)是一个汇集全球顶级品牌的AI超市，按需付费，零月费，零门槛使用各种类型AI。
-> 
-> 功能全面: 将最好用的AI集成到在平台之上，包括不限于AI聊天，图片生成，图片处理，视频生成，全方位覆盖。
-> 
-> 简单易用: 提供机器人，工具和API多种使用方法，可以满足从小白到开发者多种角色的需求。
-> 
-> 按需付费零门槛: 不提供月付套餐，对产品不设任何门槛，按需付费，全部开放。充值余额永久有效。
-> 
-> 管理者和使用者分离： 管理者一键分享，使用者无需登录。
 **界面预览**
 
 
@@ -29,7 +17,9 @@
 
 
 
+试听合成语音效果
 
+https://github.com/jianchang512/ChatTTS-ui/assets/3378335/bd6aaef9-a49a-4a81-803a-91e3320bf808
 
 
 文字数字符号 控制符混杂效果
@@ -37,11 +27,85 @@
 https://github.com/jianchang512/ChatTTS-ui/assets/3378335/e2a08ea0-32af-4a30-8880-3a91f6cbea55
 
 
+> 第一次启动时将在校下载模型，先检测能否连接  `https://huggingface.co`, 若不可连接，则从阿里魔塔 modelscope.cn 下载
+>
+> 源码部署时请确保科学上网，否则下载模型会失败
+
 ## Windows预打包版
 
 1. 从 [Releases](https://github.com/jianchang512/chatTTS-ui/releases)中下载压缩包，解压后双击 app.exe 即可使用
 2. 某些安全软件可能报毒，请退出或使用源码部署
-3. 英伟达显卡大于4G显存，并安装了CUDA11.8+后，将启用GPU加速
+3. 英伟达显卡大于4G显存，并安装了CUDA12.8+后，将启用GPU加速
+
+
+## Linux 下源码部署
+
+1. 配置好 python3.9-3.11环境
+2. 创建空目录 `/data/chattts` 执行命令 `cd /data/chattts &&  git clone https://github.com/jianchang512/chatTTS-ui .`
+3. 创建虚拟环境 `python3 -m venv venv`
+4. 激活虚拟环境 `source ./venv/bin/activate`
+5. 安装依赖 `pip3 install -r requirements.txt`
+6. 如果不需要CUDA加速，执行 
+	
+	`pip3 install torch==2.7.1 torchaudio==2.7.1`
+
+	如果需要CUDA加速，执行 
+	
+	```
+	pip install torch==2.7.1 torchaudio==2.7.1 --index-url https://download.pytorch.org/whl/cu128
+
+	pip install nvidia-cublas-cu11 nvidia-cudnn-cu11
+		
+	```
+	
+	另需安装 CUDA12.8+ ToolKit，请自行搜索安装方法
+	
+
+ 
+7. 执行 `python3 app.py` 启动，将自动打开浏览器窗口，默认地址 `http://127.0.0.1:9966` (注意：默认从 modelscope 魔塔下载模型，不可使用代理下载，请关闭代理)
+
+
+## MacOS 下源码部署
+
+1. 配置好 python3.9-3.11 环境,安装git ，执行命令  `brew install libsndfile git python@3.10`
+   继续执行
+
+    ```
+    export PATH="/usr/local/opt/python@3.10/bin:$PATH"
+	
+    source ~/.bash_profile 
+	
+	source ~/.zshrc
+	
+    ```
+	
+2. 创建空目录 `/data/chattts` 执行命令 `cd /data/chattts &&  git clone https://github.com/jianchang512/chatTTS-ui .`
+3. 创建虚拟环境 `python3 -m venv venv`
+4. 激活虚拟环境 `source ./venv/bin/activate`
+5. 安装依赖 `pip3 install -r requirements.txt`
+6. 安装torch `pip3 install torch==2.7.1 torchaudio==2.7.1`
+7. 执行 `python3 app.py` 启动，将自动打开浏览器窗口，默认地址 `http://127.0.0.1:9966`
+
+
+## Windows源码部署
+
+1. 下载python3.9-3.11，安装时注意选中`Add Python to environment variables`
+2. 下载并安装git，https://github.com/git-for-windows/git/releases/download/v2.45.1.windows.1/Git-2.45.1-64-bit.exe 
+3. 创建空文件夹 `D:/chattts` 并进入，地址栏输入 `cmd`回车，在弹出的cmd窗口中执行命令 `git clone https://github.com/jianchang512/chatTTS-ui .`
+4. 创建虚拟环境，执行命令 `python -m venv venv`
+4. 激活虚拟环境，执行 `.\venv\scripts\activate`
+5. 安装依赖,执行 `pip install -r requirements.txt`
+6. 如果不需要CUDA加速，
+
+	执行 `pip install torch==2.7.1 torchaudio==2.7.1`
+
+	如果需要CUDA加速，执行 
+	
+	`pip install torch==2.7.1 torchaudio==2.7.1 --index-url https://download.pytorch.org/whl/cu128`
+	
+	另需安装 CUDA12.8+ ToolKit，请自行搜索安装方法
+	
+7. 执行 `python app.py` 启动，将自动打开浏览器窗口，默认地址 `http://127.0.0.1:9966`  (注意：默认从 modelscope 魔塔下载模型，不可使用代理下载，请关闭代理)
 
 ## Linux 下容器部署
 
@@ -104,140 +168,37 @@ https://github.com/jianchang512/ChatTTS-ui/assets/3378335/e2a08ea0-32af-4a30-888
    docker compose logs -f --no-log-prefix
    ```
 
-## Linux 下源码部署
-
-1. 配置好 python3.9-3.11环境，安装 ffmpeg。 `yum install ffmpeg` 或 `apt-get install ffmpeg`等
-2. 创建空目录 `/data/chattts` 执行命令 `cd /data/chattts &&  git clone https://github.com/jianchang512/chatTTS-ui .`
-3. 创建虚拟环境 `python3 -m venv venv`
-4. 激活虚拟环境 `source ./venv/bin/activate`
-5. 安装依赖 `pip3 install -r requirements.txt`
-6. 如果不需要CUDA加速，执行 
-	
-	`pip3 install torch==2.2.0 torchaudio==2.2.0`
-
-	如果需要CUDA加速，执行 
-	
-	```
-	pip install torch==2.2.0 torchaudio==2.2.0 --index-url https://download.pytorch.org/whl/cu118
-
-	pip install nvidia-cublas-cu11 nvidia-cudnn-cu11
-		
-	```
-	
-	另需安装 CUDA11.8+ ToolKit，请自行搜索安装方法 或参考 https://juejin.cn/post/7318704408727519270
-
-   	除CUDA外，也可以使用AMD GPU进行加速，这需要安装ROCm和PyTorch_ROCm版本。AMG GPU借助ROCm，在PyTorch开箱即用，无需额外修改代码。
-   	1. 请参考https://rocm.docs.amd.com/projects/install-on-linux/en/latest/tutorial/quick-start.html 来安装AMD GPU Driver及ROCm.
-	1. 再通过https://pytorch.org/ 安装PyTorch_ROCm版本。
 
 
-	`pip3 install torch==2.2.0  torchaudio==2.2.0 --index-url https://download.pytorch.org/whl/rocm6.0`
-	
-    安装完成后，可以通过rocm-smi命令来查看系统中的AMD GPU。也可以用以下Torch代码(query_gpu.py)来查询当前AMD GPU Device.
-	
-	```
-	import torch
-	
-	print(torch.__version__)
-	
-	if torch.cuda.is_available():
-	    device = torch.device("cuda")          # a CUDA device object
-	    print('Using GPU:', torch.cuda.get_device_name(0))
-	else:
-	    device = torch.device("cpu")
-	    print('Using CPU')
-	
-	torch.cuda.get_device_properties(0)
-
-	```
-
- 	使用以上代码，以AMD Radeon Pro W7900为例，查询设备如下。
-
- 	```
-	
- 	$ python ~/query_gpu.py
-	
-	2.4.0.dev20240401+rocm6.0
-	
- 	Using GPU: AMD Radeon PRO W7900
-	
- 	```
-
-
- 
-7. 执行 `python3 app.py` 启动，将自动打开浏览器窗口，默认地址 `http://127.0.0.1:9966` (注意：默认从 modelscope 魔塔下载模型，不可使用代理下载，请关闭代理)
-
-
-## MacOS 下源码部署
-
-1. 配置好 python3.9-3.11 环境,安装git ，执行命令  `brew install libsndfile git python@3.10`
-   继续执行
-
-    ```
-	brew install ffmpeg
-	
-    export PATH="/usr/local/opt/python@3.10/bin:$PATH"
-	
-    source ~/.bash_profile 
-	
-	source ~/.zshrc
-	
-    ```
-	
-2. 创建空目录 `/data/chattts` 执行命令 `cd /data/chattts &&  git clone https://github.com/jianchang512/chatTTS-ui .`
-3. 创建虚拟环境 `python3 -m venv venv`
-4. 激活虚拟环境 `source ./venv/bin/activate`
-5. 安装依赖 `pip3 install -r requirements.txt`
-6. 安装torch `pip3 install torch==2.2.0 torchaudio==2.2.0`
-7. 执行 `python3 app.py` 启动，将自动打开浏览器窗口，默认地址 `http://127.0.0.1:9966`  (注意：默认从 modelscope 魔塔下载模型，不可使用代理下载，请关闭代理)
-
-
-## Windows源码部署
-
-1. 下载python3.9-3.11，安装时注意选中`Add Python to environment variables`
-2. 下载 ffmpeg.exe 放在 软件目录下的ffmpeg文件夹内
-3. 下载并安装git，https://github.com/git-for-windows/git/releases/download/v2.45.1.windows.1/Git-2.45.1-64-bit.exe 
-4. 创建空文件夹 `D:/chattts` 并进入，地址栏输入 `cmd`回车，在弹出的cmd窗口中执行命令 `git clone https://github.com/jianchang512/chatTTS-ui .`
-5. 创建虚拟环境，执行命令 `python -m venv venv`
-6. 激活虚拟环境，执行 `.\venv\scripts\activate`
-7. 安装依赖,执行 `pip install -r requirements.txt`
-8. 如果不需要CUDA加速，
-
-	执行 `pip install torch==2.2.0 torchaudio==2.2.0`
-
-	如果需要CUDA加速，执行 
-	
-	`pip install torch==2.2.0 torchaudio==2.2.0 --index-url https://download.pytorch.org/whl/cu118`
-	
-	另需安装 CUDA11.8+ ToolKit，请自行搜索安装方法或参考 https://juejin.cn/post/7318704408727519270
-	
-9. 执行 `python app.py` 启动，将自动打开浏览器窗口，默认地址 `http://127.0.0.1:9966`  (注意：默认从 modelscope 魔塔下载模型，不可使用代理下载，请关闭代理)
-
-
-## 源码部署注意 0.96版本起，必须安装ffmpeg
+## 部署注意
 
 1. 如果GPU显存低于4G，将强制使用CPU。
 
-2. Windows或Linux下如果显存大于4G并且是英伟达显卡，但源码部署后仍使用CPU，可尝试先卸载torch再重装，卸载`pip uninstall -y torch torchaudio` , 重新安装cuda版torch。`pip install torch==2.2.0 torchaudio==2.2.0 --index-url https://download.pytorch.org/whl/cu118`  。必须已安装CUDA11.8+
+2. Windows或Linux下如果显存大于4G并且是英伟达显卡，但源码部署后仍使用CPU，可尝试先卸载torch再重装，卸载`pip uninstall -y torch torchaudio` , 重新安装cuda版torch。`pip install torch==2.7.1 torchaudio==2.7.1 --index-url https://download.pytorch.org/whl/cu128`  。必须已安装CUDA12.8+
 
 3. 默认检测 modelscope 是否可连接，如果可以，则从modelscope下载模型，否则从 huggingface.co下载模型
 
-
-
 ## 音色获取
 
-0.96版本后，因ChatTTS内核升级，已无法直接使用从该站点下载的pt文件(https://modelscope.cn/studios/ttwwwaa/ChatTTS_Speaker)
+从 0.92 版本起，支持csv或pt格式的固定音色，下载后保存到软件目录下的  speaker 文件夹中即可
 
-因此增加转换脚本 cover-pt.py [Win整合包可以直接下载 cover-pt.exe 文件，和 app.exe 放在同一目录下双击执行](https://github.com/jianchang512/ChatTTS-ui/releases)
+pt文件可从 https://github.com/6drf21e/ChatTTS_Speaker 项目提供的体验链接页面 (https://modelscope.cn/studios/ttwwwaa/ChatTTS_Speaker) 下载。
 
-执行  `python cover-pt.py` 后将把 `speaker` 目录下的，以 `seed_` 开头，以  `_emb.pt` 结尾的文件，即下载后的默认文件名pt，
-转换为可用的编码格式，转换后的pt将改名为以 `_emb-covert.pt` 结尾。
+也可以从此页面 http://ttslist.aiqbh.com/10000cn/  查看试听后将对应音色值填写到 “自定义音色值”文本框中
 
-例：
-
-假如  `speaker/seed_2155_restored_emb.pt` 存在这个文件,将被转换为 `speaker/seed_2155_restored_emb-cover.pt`, 然后删掉原pt文件，仅保留该转换后的文件即可
+**不同设备同一音色值seed，最终合成的声音会有差异的，以及同一设备相同音色值，音色也可能会有变化，尤其音调**
 
 
+## 环境调整
+记事本打开 .env 文件，可看到以下代码
+```
+WEB_ADDRESS=127.0.0.1:9966 #可修改web服务地址和端口
+compile=false 
+device=default # 默认优先选择cuda(若显存大于4G)/mps，可手动指定 cpu|mps|cuda
+endpoint=https://hf-mirror.com # 模型下载地址，默认使用国内镜像，若可访问hf，可修改为 https://huggingface.co
+
+
+```
 
 
 

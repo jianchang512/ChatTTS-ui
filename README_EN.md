@@ -1,47 +1,101 @@
+[中文](README.md)
 
-[简体中文](README.md) | [Discord Discussion Group](https://discord.gg/y9gUweVCCJ) | [Support the Project](https://github.com/jianchang512/ChatTTS-ui/issues/122)
+# ChatTTS WebUI & API 
 
-# ChatTTS webUI & API 
+A simple local web interface to convert text to speech using ChatTTS. It supports mixed Chinese, English, and numbers, and provides an API.
 
-A simple local web interface to use ChatTTS for text-to-speech synthesis on the web, supporting mixed Chinese and English text and numbers, and providing an API interface.
+> Original [ChatTTS](https://github.com/2noise/chattts) project
 
-> The original [ChatTTS](https://github.com/2noise/chattts) project
-
-**Interface Preview**
+**UI Preview**
 
 ![image](https://github.com/jianchang512/ChatTTS-ui/assets/3378335/8d9b36d4-29b9-4cd7-ae70-3e3bd3225108)
 
 
-Sample synthesized voice effects
-
-https://github.com/jianchang512/ChatTTS-ui/assets/3378335/bd6aaef9-a49a-4a81-803a-91e3320bf808
-
-Text and control symbols mixed effect
-
-https://github.com/jianchang512/ChatTTS-ui/assets/3378335/e2a08ea0-32af-4a30-8880-3a91f6cbea55
-
+> The model will be downloaded automatically on the first launch. It will try connecting to `https://huggingface.co` first. If unreachable, it will download from ModelScope (modelscope.cn).
+>
+> Please ensure you have a stable internet connection (a VPN may be needed in some regions) when deploying from source to avoid download failures.
 
 ## Windows Pre-packaged Version
 
-1. Download the compressed package from [Releases](https://github.com/jianchang512/chatTTS-ui/releases), unzip it, and double-click app.exe to use.
-2. Some security software may flag it as a virus, please disable or deploy from source.
-3. If you have an Nvidia graphics card with more than 4GB of memory and have installed CUDA11.8+, GPU acceleration will be enabled.
+1. Download the zip file from [Releases](https://github.com/jianchang512/chatTTS-ui/releases), extract it, and double-click `app.exe` to start.
+2. Some antivirus software may trigger false positives. You can temporarily disable them or deploy from source instead.
+3. GPU acceleration will be enabled if you have an NVIDIA card with more than 4GB VRAM and CUDA 12.8+ installed.
 
-## Linux Container Deployment
+## Linux Source Deployment
+
+1. Set up a Python 3.9–3.11 environment.
+2. Create an empty directory `/data/chattts` and run: `cd /data/chattts && git clone https://github.com/jianchang512/chatTTS-ui .`
+3. Create a virtual environment: `python3 -m venv venv`
+4. Activate the virtual environment: `source ./venv/bin/activate`
+5. Install dependencies: `pip3 install -r requirements.txt`
+6. For CPU-only (no CUDA acceleration), run: 
+	
+	`pip3 install torch==2.7.1 torchaudio==2.7.1`
+
+   For GPU acceleration (CUDA), run: 
+	
+	```bash
+	pip install torch==2.7.1 torchaudio==2.7.1 --index-url https://download.pytorch.org/whl/cu128
+	pip install nvidia-cublas-cu11 nvidia-cudnn-cu11
+	```
+	
+	You will also need to install the CUDA 12.8+ Toolkit yourself.
+	
+7. Run `python3 app.py` to start. A browser window will open automatically at the default address `http://127.0.0.1:9966`. (Note: By default, the model is downloaded from ModelScope. Please turn off your proxy/VPN during this download, as proxies are not supported for ModelScope).
+
+## macOS Source Deployment
+
+1. Set up a Python 3.9–3.11 environment, install Git, and run: `brew install libsndfile git python@3.10`
+   Then run:
+
+    ```bash
+    export PATH="/usr/local/opt/python@3.10/bin:$PATH"
+    source ~/.bash_profile 
+    source ~/.zshrc
+    ```
+	
+2. Create an empty directory `/data/chattts` and run: `cd /data/chattts && git clone https://github.com/jianchang512/chatTTS-ui .`
+3. Create a virtual environment: `python3 -m venv venv`
+4. Activate the virtual environment: `source ./venv/bin/activate`
+5. Install dependencies: `pip3 install -r requirements.txt`
+6. Install Torch: `pip3 install torch==2.7.1 torchaudio==2.7.1`
+7. Run `python3 app.py` to start. A browser window will open automatically at `http://127.0.0.1:9966`.
+
+## Windows Source Deployment
+
+1. Download and install Python 3.9–3.11. Make sure to check "Add Python to environment variables" during installation.
+2. Download and install Git: https://github.com/git-for-windows/git/releases/download/v2.45.1.windows.1/Git-2.45.1-64-bit.exe 
+3. Create an empty folder named `D:/chattts`. Open the folder, type `cmd` in the address bar, press Enter, and run: `git clone https://github.com/jianchang512/chatTTS-ui .`
+4. Create a virtual environment: `python -m venv venv`
+5. Activate the virtual environment: `.\venv\Scripts\activate`
+6. Install dependencies: `pip install -r requirements.txt`
+7. For CPU-only (no CUDA acceleration):
+
+	Run `pip install torch==2.7.1 torchaudio==2.7.1`
+
+	For GPU acceleration (CUDA), run: 
+	
+	`pip install torch==2.7.1 torchaudio==2.7.1 --index-url https://download.pytorch.org/whl/cu128`
+	
+	You will also need to install the CUDA 12.8+ Toolkit yourself.
+	
+8. Run `python app.py` to start. A browser window will open automatically at `http://127.0.0.1:9966`. (Note: By default, the model is downloaded from ModelScope. Please turn off your proxy/VPN during this download).
+
+## Docker Deployment (Linux)
 
 ### Installation
 
-1. Clone the project repository
+1. Clone the repository
 
-   Clone the project to any directory, for example:
+   Clone the project into any directory, for example:
 
    ```bash
    git clone https://github.com/jianchang512/ChatTTS-ui.git chat-tts-ui
    ```
 
-2. Start Runner
+2. Start the Container
 
-   Enter the project directory:
+   Navigate to the project directory:
 
    ```bash
    cd chat-tts-ui
@@ -50,10 +104,10 @@ https://github.com/jianchang512/ChatTTS-ui/assets/3378335/e2a08ea0-32af-4a30-888
    Start the container and view the initialization logs:
 
    ```bash
-   For GPU version
+   # GPU version
    docker compose -f docker-compose.gpu.yaml up -d 
 
-   For CPU version    
+   # CPU version    
    docker compose -f docker-compose.cpu.yaml up -d
 
    docker compose logs -f --no-log-prefix
@@ -61,12 +115,12 @@ https://github.com/jianchang512/ChatTTS-ui/assets/3378335/e2a08ea0-32af-4a30-888
 
 3. Access ChatTTS WebUI
 
-   `Started at:['0.0.0.0', '9966']`, meaning you can access it via `IP:9966` of the deployment device, for example:
+   Once started on `0.0.0.0:9966`, you can access the WebUI using the device's `IP:9966`. For example:
 
-   - Localhost: `http://127.0.0.1:9966`
+   - Local: `http://127.0.0.1:9966`
    - Server: `http://192.168.1.100:9966`
 
-### Update
+### Updating
 
 1. Get the latest code from the main branch:
 
@@ -75,217 +129,125 @@ https://github.com/jianchang512/ChatTTS-ui/assets/3378335/e2a08ea0-32af-4a30-888
    git pull origin main
    ```
 
-2. Go to the next step and update to the latest image:
+2. Stop the container and rebuild with the latest image:
 
    ```bash
    docker compose down
 
-   For GPU version
+   # GPU version
    docker compose -f docker-compose.gpu.yaml up -d --build
 
-   For CPU version
+   # CPU version
    docker compose -f docker-compose.cpu.yaml up -d --build
    
    docker compose logs -f --no-log-prefix
    ```
 
-## Linux Source Code Deployment
-
-1. Prepare python3.9-3.11 environment. Install FFmpeg
-2. Create an empty directory `/data/chattts` and execute `cd /data/chattts &&  git clone https://github.com/jianchang512/chatTTS-ui .`.
-3. Create a virtual environment `python3 -m venv venv`.
-4. Activate the virtual environment `source ./venv/bin/activate`.
-5. Install dependencies `pip3 install -r requirements.txt`.
-6. If CUDA acceleration is not needed, execute 
-
-   `pip3 install torch==2.2.0 torchaudio==2.2.0`
-
-   If CUDA acceleration is needed, execute
-   
-   ```
-   pip install torch==2.2.0 torchaudio==2.2.0 --index-url https://download.pytorch.org/whl/cu118
-
-   pip install nvidia-cublas-cu11 nvidia-cudnn-cu11
-   ```
-   
-   Additionally, install CUDA11.8+ ToolKit, search for installation methods or refer to https://juejin.cn/post/7318704408727519270
-
-   Besides CUDA, AMD GPU acceleration can also be used by installing ROCm and PyTorch_ROCm version. For AMD GPU, with the help of ROCm, PyTorch works out of the box without further modifications.
-   1. Refer to https://rocm.docs.amd.com/projects/install-on-linux/en/latest/tutorial/quick-start.html to install AMD GPU Driver and ROCm.
-   2. Then install PyTorch_ROCm version from https://pytorch.org/. 
-
-   `pip3 install torch==2.2.0  torchaudio==2.2.0 --index-url https://download.pytorch.org/whl/rocm6.0`
-
-   After installation, you can use the command `rocm-smi` to view the AMD GPUs in the system. The following Torch code(query_gpu.py) can also be used to query the current AMD GPU Device.
-
-   ```
-   import torch
-   
-   print(torch.__version__)
-   
-   if torch.cuda.is_available():
-       device = torch.device("cuda")          # a CUDA device object
-       print('Using GPU:', torch.cuda.get_device_name(0))
-   else:
-       device = torch.device("cpu")
-       print('Using CPU')
-   
-   torch.cuda.get_device_properties(0)
-
-   ```
-
-   Using the code above, for instance, with AMD Radeon Pro W7900, the device query is as follows.
-
-   ```
-   
-   $ python ~/query_gpu.py
-   
-   2.4.0.dev20240401+rocm6.0
-   
-   Using GPU: AMD Radeon PRO W7900
-   
-   ```
-
-
- 
-7. Execute `python3 app.py` to start. It will automatically open a browser window at `http://127.0.0.1:9966`. Note: Models are downloaded from modelscope by default without using a proxy, please disable the proxy.
-
-
-## MacOS Source Code Deployment
-
-1. Prepare the python3.9-3.11 environment and install git. Execute command `brew install libsndfile git python@3.10`. Then continue with
-
-   ```
-   brew install ffmpeg
-   
-   export PATH="/usr/local/opt/python@3.10/bin:$PATH"
-   
-   source ~/.bash_profile 
-   
-   source ~/.zshrc
-   
-   ```
-   
-2. Create an empty directory `/data/chattts` and execute command `cd /data/chattts &&  git clone https://github.com/jianchang512/chatTTS-ui .`.
-3. Create a virtual environment `python3 -m venv venv`.
-4. Activate the virtual environment `source ./venv/bin/activate`.
-5. Install dependencies `pip3 install -r requirements.txt`.
-6. Install torch `pip3 install torch==2.2.0 torchaudio==2.2.0`.
-7. Execute `python3 app.py` to start. It will automatically open a browser window at `http://127.0.0.1:9966`. Note: Models are downloaded from modelscope by default without using a proxy, please disable the proxy.
-
-
-## Windows Source Code Deployment
-
-1. Download python3.9-3.11, make sure to check `Add Python to environment variables` during installation. install ffmpeg.exe
-2. Download and install git from https://github.com/git-for-windows/git/releases/download/v2.45.1.windows.1/Git-2.45.1-64-bit.exe.
-3. Create an empty folder `D:/chattts` and enter it, type `cmd` in the address bar and press Enter. In the cmd window that pops up, execute command `git clone https://github.com/jianchang512/chatTTS-ui .`.
-4. Create a virtual environment by executing command `python -m venv venv`.
-5. Activate the virtual environment by executing `.\venv\scripts\activate`.
-6. Install dependencies by executing `pip install -r requirements.txt`.
-7. If CUDA acceleration is not needed,
-
-   execute `pip install torch==2.2.0 torchaudio==2.2.0`.
-
-   If CUDA acceleration is needed, execute 
-   
-   `pip install torch==2.2.0 torchaudio==2.2.0 --index-url https://download.pytorch.org/whl/cu118`.
-   
-   Additionally, install CUDA11.8+ ToolKit, search for installation methods or refer to https://juejin.cn/post/7318704408727519270.
-   
-8. Execute `python app.py` to start. It will automatically open a browser window at `http://127.0.0.1:9966`. Note: Models are downloaded from modelscope by default without using a proxy, please disable the proxy.
-
-
 ## Deployment Notes
 
-0. install ffmpeg since 0.96
+1. If your GPU VRAM is less than 4GB, CPU mode will be forced.
 
-1. If the GPU memory is below 4GB, it will forcefully use the CPU.
+2. On Windows or Linux, if you have an NVIDIA card with >4GB VRAM but the software still uses CPU, try uninstalling and reinstalling Torch. Run `pip uninstall -y torch torchaudio` first, then reinstall the CUDA version: `pip install torch==2.7.1 torchaudio==2.7.1 --index-url https://download.pytorch.org/whl/cu128`. Ensure you have CUDA 12.8+ installed.
 
-2. Under Windows or Linux, if the memory is more than 4GB and it is an Nvidia graphics card, but the source code deployment still uses CPU, you may try uninstalling torch first and then reinstalling it. Uninstall with `pip uninstall -y torch torchaudio`, then reinstall the CUDA version of torch `pip install torch==2.2.0 torchaudio==2.2.0 --index-url https://download.pytorch.org/whl/cu118`. CUDA11.8+ must be installed.
+3. The software checks if ModelScope is accessible. If yes, it downloads the model from ModelScope; otherwise, it downloads from huggingface.co.
 
-3. By default, it checks whether modelscope can be connected. If so, models are downloaded from modelscope; otherwise, models are downloaded from huggingface.co.
+## Obtaining Voices (Speakers)
 
+Starting from version 0.92, fixed voices in `.csv` or `.pt` format are supported. Simply download and save them in the `speaker` folder inside the software directory.
 
-## [FAQs and Troubleshooting](faq.md)
+`.pt` files can be downloaded from the demo link page of the [ChatTTS_Speaker](https://github.com/6drf21e/ChatTTS_Speaker) project (https://modelscope.cn/studios/ttwwwaa/ChatTTS_Speaker).
 
+You can also visit http://ttslist.aiqbh.com/10000cn/ to listen to audio samples and copy the corresponding voice seed value into the "Custom Voice Value" text box.
 
+**Note:** The same voice seed value may sound slightly different across different devices. Even on the same device, the tone or pitch of the same voice seed may vary slightly between generations.
 
+## Adjusting Environment Settings
 
-## Modify HTTP Address
+Open the `.env` file with a text editor to modify the configuration:
 
-The default address is `http://127.0.0.1:9966`. If you want to modify it, open the `.env` file in the directory and change `WEB_ADDRESS=127.0.0.1:9966` to the appropriate IP and port, such as changing to `WEB_ADDRESS=192.168.0.10:9966` for LAN access.
+```ini
+WEB_ADDRESS=127.0.0.1:9966 # Modify the Web service address and port
+compile=false 
+device=default # Defaults to CUDA (if VRAM > 4GB) or MPS. You can manually set this to cpu, mps, or cuda
+endpoint=https://hf-mirror.com # Model download source. Defaults to a mirror. Change to https://huggingface.co if accessible.
+```
 
-## Using API Requests v0.5+
+## [FAQ & Troubleshooting](faq.md)
 
-**Method:** POST
+## Modifying the HTTP Address
 
-**URL:** http://127.0.0.1:9966/tts
+The default address is `http://127.0.0.1:9966`. To change this, open the `.env` file in the project folder and change `WEB_ADDRESS=127.0.0.1:9966` to your preferred IP and port (e.g., `WEB_ADDRESS=192.168.0.10:9966` to allow local network access).
+
+## Using the API (v0.5+)
+
+**Request Method:** POST
+
+**Request URL:** http://127.0.0.1:9966/tts
 
 **Parameters:**
 
-text: str| Required, text to synthesize.
-
-voice: int| Optional, default 2222. Determines the voice digit, choose from 2222 | 7869 | 6653 | 4099 | 5099, or any input will randomly use a voice.
-
-prompt: str| Optional, default empty. Sets laughter, pause, etc., like [oral_2][laugh_0][break_6].
-
-temperature: float| Optional, default 0.3.
-
-top_p: float| Optional, default 0.7.
-
-top_k: int| Optional, default 20.
-
-skip_refine: int| Optional, default 0. 1=skip refine text, 0=do not skip.
-
-custom_voice: int| Optional, default 0. Sets a custom seed value for obtaining the voice, must be a positive integer. If set, it will take precedence over `voice`.
-
+- `text`: str | Required. The text to be synthesized.
+- `voice`: Optional. Default is 2222. Numeric seed for the voice (e.g., 2222, 7869, 6653, 4099, 5099). Pass any number for a random voice.
+- `prompt`: str | Optional. Default is empty. Used to insert laughter or pauses, e.g., `[oral_2][laugh_0][break_6]`.
+- `temperature`: float | Optional. Default is 0.3.
+- `top_p`: float | Optional. Default is 0.7.
+- `top_k`: int | Optional. Default is 20.
+- `skip_refine`: int | Optional. Default is 0. `1` = skip text refinement, `0` = do not skip.
+- `custom_voice`: int | Optional. Default is 0. Seed value for custom voice. Must be an integer greater than 0. If set, this overrides the `voice` parameter.
 
 **Response: JSON**
 
 Success:
-	{code:0,msg:ok,audio_files:[dict1,dict2]}
+```json
+{
+  "code": 0,
+  "msg": "ok",
+  "audio_files": [
+    {
+      "filename": "absolute path to WAV",
+      "url": "downloadable URL for WAV"
+    }
+  ]
+}
+```
 	
-	where audio_files is an array of dictionaries, each element dict is {filename:absolute path to wav file, url:downloadable wav URL}
-
 Failure:
-
-	{code:1,msg:error reason}
-
-
+```json
+{
+  "code": 1,
+  "msg": "error details"
+}
 ```
 
-# API Call Code
+```python
+# API Code Example
 
 import requests
 
 res = requests.post('http://127.0.0.1:9966/tts', data={
-  "text": "No need to fill if unsure",
+  "text": "Hello world.",
   "prompt": "",
   "voice": "3333",
   "temperature": 0.3,
   "top_p": 0.7,
   "top_k": 20,
   "skip_refine": 0,
-  "custom_voice": 0,
+  "custom_voice": 0
 })
 print(res.json())
 
-#ok
-{code:0, msg:'ok', audio_files:[{filename: E:/python/chattts/static/wavs/20240601-22_12_12-c7456293f7b5e4dfd3ff83bbd884a23e.wav, url: http://127.0.0.1:9966/static/wavs/20240601-22_12_12-c7456293f7b5e4dfd3ff83bbd884a23e.wav}]}
+# Success Response
+# {code:0, msg:'ok', audio_files:[{filename: E:/python/chattts/static/wavs/20240601-22_12_12-c7456293f7b5e4dfd3ff83bbd884a23e.wav, url: http://127.0.0.1:9966/static/wavs/20240601-22_12_12-c7456293f7b5e4dfd3ff83bbd884a23e.wav}]}
 
-#error
-{code:1, msg:"error"}
-
-
+# Error Response
+# {code:1, msg:"error"}
 ```
 
+## Using with pyVideoTrans
 
-## Using in pyVideoTrans software
+> Upgrade pyVideoTrans to 1.82+ (https://github.com/jianchang512/pyvideotrans)
 
-> Upgrade pyVideoTrans to 1.82+ https://github.com/jianchang512/pyvideotrans
-
-1. Click Menu-Settings-ChatTTS and fill in the request address, which should by default be http://127.0.0.1:9966.
-2. After ensuring there are no issues, select `ChatTTS` on the main interface.
+1. Click Menu -> Settings -> ChatTTS, and enter the request URL (default is `http://127.0.0.1:9966`).
+2. Once the test is successful, select `ChatTTS` in the main interface.
 
 ![image](https://github.com/jianchang512/ChatTTS-ui/assets/3378335/7118325f-2b9a-46ce-a584-1d5c6dc8e2da)
-

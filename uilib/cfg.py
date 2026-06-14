@@ -12,7 +12,13 @@ def get_executable_path():
 
 ROOT_DIR=get_executable_path()
 
-MODEL_DIR_PATH=Path(ROOT_DIR+"/asset")
+if sys.platform == 'win32' and getattr(sys, 'frozen', False):
+    os.environ['PATH'] = f'{ROOT_DIR}/_internal/torch/lib;' + os.environ.get("PATH", "")
+
+os.environ['PATH'] = ROOT_DIR + os.pathsep + f'{ROOT_DIR}/ffmpeg'  + os.pathsep + os.environ.get(
+        "PATH", "")
+
+MODEL_DIR_PATH=Path(ROOT_DIR+"/models")
 MODEL_DIR_PATH.mkdir(parents=True, exist_ok=True)
 MODEL_DIR=MODEL_DIR_PATH.as_posix()
 
@@ -27,13 +33,6 @@ LOGS_DIR=LOGS_DIR_PATH.as_posix()
 SPEAKER_DIR_PATH=Path(ROOT_DIR+"/speaker")
 SPEAKER_DIR_PATH.mkdir(parents=True, exist_ok=True)
 SPEAKER_DIR=SPEAKER_DIR_PATH.as_posix()
-
-# ffmpeg
-if sys.platform == 'win32':
-    os.environ['PATH'] = ROOT_DIR + f';{ROOT_DIR}/ffmpeg;' + os.environ['PATH']
-
-else:
-    os.environ['PATH'] = ROOT_DIR + f':{ROOT_DIR}/ffmpeg:' + os.environ['PATH']
 
 
 # 读取 .env 变量

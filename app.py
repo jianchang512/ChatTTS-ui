@@ -1,43 +1,41 @@
 import os
 import re
 import sys
+from dotenv import load_dotenv
+load_dotenv()
 if sys.platform == "darwin":
     os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 import io
 import json
-import torchaudio
 import wave
 from pathlib import Path
 print('Starting...')
-import shutil
-import time
-
 import torch
 import torch._dynamo
 torch._dynamo.config.suppress_errors = True
 torch._dynamo.config.cache_size_limit = 64
 torch._dynamo.config.suppress_errors = True
 torch.set_float32_matmul_precision('high')
-os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
-import subprocess
 import soundfile as sf
 import ChatTTS
 import datetime
-from dotenv import load_dotenv
-load_dotenv()
 from flask import Flask, request, render_template, jsonify,  send_from_directory,send_file,Response, stream_with_context
 import logging
 from logging.handlers import RotatingFileHandler
 from waitress import serve
+import huggingface_hub
+from huggingface_hub.errors import LocalEntryNotFoundError
 from random import random
 from modelscope import snapshot_download
 import numpy as np
+import time
 import threading
 from uilib.cfg import WEB_ADDRESS, SPEAKER_DIR, LOGS_DIR, WAVS_DIR, MODEL_DIR, ROOT_DIR
 from uilib import utils,VERSION
-from ChatTTS.utils import select_device
-from uilib.utils import is_chinese_os,modelscope_status
-merge_size=int(os.getenv('merge_size',10))
+from ChatTTS.utils.gpu_utils import select_device
+from uilib.utils import is_chinese_os,modelscope_status,is_connect_hf
 env_lang=os.getenv('lang','')
 if env_lang=='zh':
     is_cn= True
@@ -46,28 +44,35 @@ elif env_lang=='en':
 else:
     is_cn=is_chinese_os()
     
-if not shutil.which("ffmpeg"):
-    print('请先安装ffmpeg')
-    time.sleep(60)
-    exit()    
+CHATTTS_DIR= MODEL_DIR+'/pzc163/chatTTS'
+os.environ['HF_HUB_CACHE']=MODEL_DIR
+os.environ['HF_ASSETS_CACHE']=MODEL_DIR
 
+
+try:
+    # 优先使用本地模型，不存在再联网检测下载
+    huggingface_hub.snapshot_download(
+                repo_id="2Noise/ChatTTS",
+                local_dir=CHATTTS_DIR,
+                etag_timeout=5,
+                local_files_only=True
+            )
+except LocalEntryNotFoundError:
+    if not is_connect_hf():
+        print(f"当前从阿里魔塔下载模型...\n")
+        os.environ['HF_ENDPOINT']="https://hf-mirror.com"
+        from modelscope import snapshot_download
+        snapshot_download(model_id='pzc163/chatTTS',local_dir=CHATTTS_DIR)
+    else:
+        print(f"当前从 huggingface.co 下载模型...\n")
+        huggingface_hub.snapshot_download(local_dir=CHATTTS_DIR,repo_id="2Noise/ChatTTS", allow_patterns=["*.pt", "*.yaml"],local_files_only=False)
 
 chat = ChatTTS.Chat()
-device_str=os.getenv('device','default')
+device=os.getenv('device','default')
+chat.load(source="local",device=None if device=='default' else device, compile=True if os.getenv('compile','true').lower()!='false' else False)
 
-if device_str in ['default','mps']:
-    device=select_device(min_memory=2047,experimental=True if device_str=='mps' else False)
-elif device_str =='cuda':
-    device=select_device(min_memory=2047)
-elif device_str == 'cpu':
-    device = torch.device("cpu")
+#-------log----
 
-
-chat.load(source="local" if not os.path.exists(MODEL_DIR+"/DVAE_full.pt") else 'custom',custom_path=ROOT_DIR, device=device,compile=True if os.getenv('compile','true').lower()!='false' else False)
-
-
-# 配置日志
-# 禁用 Werkzeug 默认的日志处理器
 log = logging.getLogger('werkzeug')
 log.handlers[:] = []
 log.setLevel(logging.WARNING)
@@ -77,18 +82,15 @@ app = Flask(__name__,
     static_url_path='/static',
     template_folder=ROOT_DIR+'/templates')
 
-root_log = logging.getLogger()  # Flask的根日志记录器
+root_log = logging.getLogger()
 root_log.handlers = []
 root_log.setLevel(logging.WARNING)
 app.logger.setLevel(logging.WARNING) 
-# 创建 RotatingFileHandler 对象，设置写入的文件路径和大小限制
+
 file_handler = RotatingFileHandler(LOGS_DIR+f'/{datetime.datetime.now().strftime("%Y%m%d")}.log', maxBytes=1024 * 1024, backupCount=5)
-# 创建日志的格式
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-# 设置文件处理器的级别和格式
 file_handler.setLevel(logging.WARNING)
 file_handler.setFormatter(formatter)
-# 将文件处理器添加到日志记录器中
 app.logger.addHandler(file_handler)
 app.jinja_env.globals.update(enumerate=enumerate)
 
@@ -173,42 +175,32 @@ def tts():
     # 固定音色
     rand_spk=None
     # voice可能是 {voice}.csv or {voice}.pt or number
-    voice=voice.replace('.csv','.pt')
     seed_path=f'{SPEAKER_DIR}/{voice}'
     print(f'{voice=}')
-    #if voice.endswith('.csv') and os.path.exists(seed_path):
-    #    rand_spk=utils.load_speaker(voice)
-    #    print(f'当前使用音色 {seed_path=}')
-    #el
-    
-    if voice.endswith('.pt') and os.path.exists(seed_path):
+    if voice.endswith('.csv') and os.path.exists(seed_path):
+        rand_spk=utils.load_speaker(voice)
+        print(f'当前使用音色 {seed_path=}')
+    elif voice.endswith('.pt') and os.path.exists(seed_path):
         #如果.env中未指定设备，则使用 ChatTTS相同算法找设备，否则使用指定设备
-        rand_spk=torch.load(seed_path, map_location=device)
+        rand_spk=torch.load(seed_path, map_location=select_device(4096) if device=='default' else torch.device(device))
         print(f'当前使用音色 {seed_path=}')
     # 否则 判断是否存在 {voice}.csv
-    #elif os.path.exists(f'{SPEAKER_DIR}/{voice}.csv'):
-    #    rand_spk=utils.load_speaker(voice)
-    #    print(f'当前使用音色 {SPEAKER_DIR}/{voice}.csv')
+    elif os.path.exists(f'{SPEAKER_DIR}/{voice}.csv'):
+        rand_spk=utils.load_speaker(voice)
+        print(f'当前使用音色 {SPEAKER_DIR}/{voice}.csv')
     
     if rand_spk is None:    
         print(f'当前使用音色：根据seed={voice}获取随机音色')
-        voice_int=re.findall(r'^(\d+)',voice)
-        if len(voice_int)>0:
-            voice=int(voice_int[0])
-        else:
-            voice=2222
+        voice=int(voice) if re.match(r'^\d+$',voice) else 2222
         torch.manual_seed(voice)
-        #std, mean = chat.sample_random_speaker
-        rand_spk = chat.sample_random_speaker()
-        #rand_spk = torch.randn(768) * std + mean
+        std, mean = torch.load(f'{CHATTTS_DIR}/asset/spk_stat.pt').chunk(2)
+        #rand_spk = chat.sample_random_speaker()
+        rand_spk = torch.randn(768) * std + mean
         # 保存音色
-        torch.save(rand_spk,f"{SPEAKER_DIR}/{voice}.pt")
-        #utils.save_speaker(voice,rand_spk)
+        utils.save_speaker(voice,rand_spk)
         
 
     audio_files = []
-    
-
     start_time = time.time()
     
     # 中英按语言分行
@@ -233,83 +225,51 @@ def tts():
         temperature=temperature,
         max_new_token=refine_max_new_token
     )
-    print(f'{prompt=}')
-    # 将少于30个字符的行同其他行拼接
-    retext=[]
-    short_text=""
-    for it in new_text:
-        if len(it)<30:
-            short_text+=f"{it} [uv_break] "
-            if len(short_text)>30:
-                retext.append(short_text)
-                short_text=""
-        else:
-            retext.append(short_text+it)
-            short_text=""
-    if len(short_text)>30 or len(retext)<1:
-        retext.append(short_text)
-    elif short_text:
-        retext[-1]+=f" [uv_break] {short_text}"
-        
-    new_text=retext
     
-    new_text_list=[new_text[i:i+merge_size] for i in range(0,len(new_text),merge_size)]
-    filename_list=[]
-
-    audio_time=0
-    inter_time=0
-
-    for i,te in enumerate(new_text_list):
-        print(f'{te=}')
-        wavs = chat.infer(
-            te, 
-            #use_decoder=False,
-            stream=True if is_stream==1 else False,
-            skip_refine_text=skip_refine,
-            do_text_normalization=False,
-            do_homophone_replacement=True,
-            params_refine_text=params_refine_text,
-            params_infer_code=params_infer_code
-            
-            )
-
-
-        end_time = time.time()
-        inference_time = end_time - start_time
-        inference_time_rounded = round(inference_time, 2)
-        inter_time+=inference_time_rounded
-        print(f"推理时长: {inference_time_rounded} 秒")
-
-       
+    wavs = chat.infer(
+        new_text, 
+        use_decoder=True,
+        stream=True if is_stream==1 else False,
+        skip_refine_text=skip_refine,
+        do_text_normalization=False,
+        do_homophone_replacement=True,
+        params_refine_text=params_refine_text,
+        params_infer_code=params_infer_code
         
-        for j,w in enumerate(wavs):
-            filename = datetime.datetime.now().strftime('%H%M%S_')+f"use{inference_time_rounded}s-seed{voice}-te{temperature}-tp{top_p}-tk{top_k}-textlen{len(text)}-{str(random())[2:7]}" + f"-{i}-{j}.wav"
-            filename_list.append(filename)
-            torchaudio.save(WAVS_DIR+'/'+filename, torch.from_numpy(w).unsqueeze(0), 24000)
-        
-    txt_tmp="\n".join([f"file '{WAVS_DIR}/{it}'" for it in filename_list])
-    txt_name=f'{time.time()}.txt'
-    with open(f'{WAVS_DIR}/{txt_name}','w',encoding='utf-8') as f:
-        f.write(txt_tmp)
-    outname=datetime.datetime.now().strftime('%H%M%S_')+f"use{inter_time}s-audio{audio_time}s-seed{voice}-te{temperature}-tp{top_p}-tk{top_k}-textlen{len(text)}-{str(random())[2:7]}" + "-merge.wav"
-    try:
-        subprocess.run(["ffmpeg","-hide_banner", "-ignore_unknown","-y","-f","concat","-safe","0","-i",f'{WAVS_DIR}/{txt_name}',"-c:a","copy",WAVS_DIR + '/' + outname],
-                   stdout=subprocess.PIPE,
-                   stderr=subprocess.PIPE,
-                   encoding="utf-8",
-                   check=True,
-                   text=True,
-                   creationflags=0 if sys.platform != 'win32' else subprocess.CREATE_NO_WINDOW)
-    except Exception as e:
-        return jsonify({"code":1,"msg":str(e)})
+        )
+    combined_wavdata=None
+    end_time = time.time()
+    inference_time = end_time - start_time
+    inference_time_rounded = round(inference_time, 2)
+    print(f"推理时长: {inference_time_rounded} 秒")
 
+    wav_list = []
+    for wavdata in wavs:
+        # np.squeeze 把可能的二维数组 (1, N) 压扁成一维 (N,)
+        # 如果它已经是 (N,) 一维数组，则保持不变
+        flat_wav = np.squeeze(wavdata)
+        wav_list.append(flat_wav)
+        
+    # 一次性合并所有音频片段
+    if wav_list:
+        combined_wavdata = np.concatenate(wav_list)
+    else:
+        combined_wavdata = np.array([])
+
+    sample_rate = 24000  # Assuming 24kHz sample rate
+    audio_duration = len(combined_wavdata) / sample_rate
+    audio_duration_rounded = round(audio_duration, 2)
+    print(f"音频时长: {audio_duration_rounded} 秒")
     
+    
+    filename = datetime.datetime.now().strftime('%H%M%S_')+f"use{inference_time_rounded}s-audio{audio_duration_rounded}s-seed{voice}-te{temperature}-tp{top_p}-tk{top_k}-textlen{len(text)}-{str(random())[2:7]}" + ".wav"
+    sf.write(WAVS_DIR+'/'+filename, combined_wavdata, 24000)
 
     audio_files.append({
-        "filename": WAVS_DIR + '/' + outname,
-        "url": f"http://{request.host}/static/wavs/{outname}",
-        "inference_time": round(inter_time,2),
-        "audio_duration": -1
+        "filename": WAVS_DIR + '/' + filename,
+        "url": f"http://{request.host}/static/wavs/{filename}",
+        "inference_time": inference_time_rounded,
+        "audio_duration": audio_duration_rounded
     })
     result_dict={"code": 0, "msg": "ok", "audio_files": audio_files}
     try:

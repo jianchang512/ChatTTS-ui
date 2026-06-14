@@ -1,22 +1,22 @@
 import os
+import re
 import logging
 import tempfile
 from dataclasses import dataclass, asdict
 from typing import Literal, Optional, List, Tuple, Dict, Union
 from json import load
 from pathlib import Path
-import lzma
 
 import numpy as np
 import torch
 from vocos import Vocos
 from vocos.pretrained import instantiate_class
 from huggingface_hub import snapshot_download
-import pybase16384 as b14
 
 from .config import Config
-from .model import DVAE, GPT, gen_logits, Tokenizer
+from .model import DVAE, Embed, GPT, gen_logits, Tokenizer, Speaker
 from .utils import (
+    load_safetensors,
     check_all_assets,
     download_all_assets,
     select_device,
@@ -24,6 +24,7 @@ from .utils import (
     del_all,
 )
 from .utils import logger as utils_logger
+from .utils import FileLike
 
 from .norm import Normalizer
 
@@ -43,13 +44,12 @@ class Chat:
             os.path.join(os.path.dirname(__file__), "res", "sha256_map.json")
         ) as f:
             self.sha256_map: Dict[str, str] = load(f)
-            print(self.sha256_map)
 
         self.context = GPT.Context()
 
     def has_loaded(self, use_decoder=False):
         not_finish = False
-        check_list = ["vocos", "gpt", "tokenizer"]
+        check_list = ["vocos", "gpt", "tokenizer", "embed"]
 
         if use_decoder:
             check_list.append("decoder")
@@ -61,25 +61,22 @@ class Chat:
                 self.logger.warning(f"{module} not initialized.")
                 not_finish = True
 
-        if not not_finish:
-            self.logger.info("all models has been initialized.")
-
         return not not_finish
 
     def download_models(
         self,
         source: Literal["huggingface", "local", "custom"] = "local",
         force_redownload=False,
-        custom_path: Optional[torch.serialization.FILE_LIKE] = None,
+        custom_path: Optional[FileLike] = None,
     ) -> Optional[str]:
         if source == "local":
-            download_path = os.getcwd()
+            download_path = custom_path if custom_path is not None else os.getcwd()
             if (
                 not check_all_assets(Path(download_path), self.sha256_map, update=True)
                 or force_redownload
             ):
                 with tempfile.TemporaryDirectory() as tmp:
-                    download_all_assets(tmpdir=tmp)
+                    download_all_assets(tmpdir=tmp, homedir=download_path)
                 if not check_all_assets(
                     Path(download_path), self.sha256_map, update=False
                 ):
@@ -88,10 +85,20 @@ class Chat:
                     )
                     return None
         elif source == "huggingface":
-            hf_home = os.getenv("HF_HOME", os.path.expanduser("~/.cache/huggingface"))
             try:
-                download_path = get_latest_modified_file(
-                    os.path.join(hf_home, "hub/models--2Noise--ChatTTS/snapshots")
+                download_path = (
+                    get_latest_modified_file(
+                        os.path.join(
+                            os.getenv(
+                                "HF_HOME", os.path.expanduser("~/.cache/huggingface")
+                            ),
+                            "hub/models--2Noise--ChatTTS/snapshots",
+                        )
+                    )
+                    if custom_path is None
+                    else get_latest_modified_file(
+                        os.path.join(custom_path, "models--2Noise--ChatTTS/snapshots")
+                    )
                 )
             except:
                 download_path = None
@@ -102,17 +109,18 @@ class Chat:
                 )
                 try:
                     download_path = snapshot_download(
-                        repo_id="2Noise/ChatTTS", allow_patterns=["*.pt", "*.yaml"]
+                        repo_id="2Noise/ChatTTS",
+                        allow_patterns=["*.yaml", "*.json", "*.safetensors"],
+                        cache_dir=custom_path,
+                        force_download=force_redownload,
                     )
                 except:
                     download_path = None
-            else:
-                self.logger.log(
-                    logging.INFO, f"load latest snapshot from cache: {download_path}"
-                )
-            if download_path is None:
-                self.logger.error("download from huggingface failed.")
-                return None
+                else:
+                    self.logger.log(
+                        logging.INFO,
+                        f"load latest snapshot from cache: {download_path}",
+                    )
         elif source == "custom":
             self.logger.log(logging.INFO, f"try to load from local: {custom_path}")
             if not check_all_assets(Path(custom_path), self.sha256_map, update=False):
@@ -120,17 +128,24 @@ class Chat:
                 return None
             download_path = custom_path
 
+        if download_path is None:
+            self.logger.error("Model download failed")
+            return None
+
         return download_path
 
     def load(
         self,
         source: Literal["huggingface", "local", "custom"] = "local",
         force_redownload=False,
-        compile: bool = True,
-        custom_path: Optional[torch.serialization.FILE_LIKE] = None,
+        compile: bool = False,
+        custom_path: Optional[FileLike] = None,
         device: Optional[torch.device] = None,
-        coef: Optional[torch.Tensor] = None,
+        coef: Optional[str] = None,
         use_flash_attn=False,
+        use_vllm=False,
+        experimental: bool = False,
+        enable_cache=True,
     ) -> bool:
         download_path = self.download_models(source, force_redownload, custom_path)
         if download_path is None:
@@ -140,6 +155,9 @@ class Chat:
             compile=compile,
             coef=coef,
             use_flash_attn=use_flash_attn,
+            use_vllm=use_vllm,
+            experimental=experimental,
+            enable_cache=enable_cache,
             **{
                 k: os.path.join(download_path, v)
                 for k, v in asdict(self.config.path).items()
@@ -151,30 +169,17 @@ class Chat:
         self.normalizer.destroy()
         del self.normalizer
         del self.sha256_map
-        del_list = ["vocos", "gpt", "decoder", "dvae", "tokenizer"]
+        del_list = ["vocos", "gpt", "decoder", "dvae", "tokenizer", "embed"]
         for module in del_list:
             if hasattr(self, module):
                 delattr(self, module)
         self.__init__(logger)
 
     def sample_random_speaker(self) -> str:
-        return self.tokenizer._encode_spk_emb(self._sample_random_speaker())
+        return self.speaker.sample_random()
 
-    @torch.inference_mode()
     def sample_audio_speaker(self, wav: Union[np.ndarray, torch.Tensor]) -> str:
-        if isinstance(wav, np.ndarray):
-            wav = torch.from_numpy(wav).to(self.device)
-        return self.tokenizer._encode_prompt(self.dvae(wav, "encode").squeeze_(0))
-
-    @torch.no_grad()
-    def _sample_random_speaker(self) -> torch.Tensor:
-        dim: int = self.gpt.gpt.layers[0].mlp.gate_proj.in_features
-        spk = (
-            torch.randn(dim, device=self.std.device, dtype=self.std.dtype)
-            .mul_(self.std)
-            .add_(self.mean)
-        )
-        return spk
+        return self.speaker.encode_prompt(self.dvae.sample_audio(wav))
 
     @dataclass(repr=False, eq=False)
     class RefineTextParams:
@@ -187,6 +192,7 @@ class Chat:
         min_new_token: int = 0
         show_tqdm: bool = True
         ensure_non_empty: bool = True
+        manual_seed: Optional[int] = None
 
     @dataclass(repr=False, eq=False)
     class InferCodeParams(RefineTextParams):
@@ -211,10 +217,32 @@ class Chat:
         use_decoder=True,
         do_text_normalization=True,
         do_homophone_replacement=True,
+        split_text=True,
+        max_split_batch=4,
         params_refine_text=RefineTextParams(),
         params_infer_code=InferCodeParams(),
     ):
         self.context.set(False)
+
+        if split_text and isinstance(text, str):
+            if "\n" in text:
+                text = text.split("\n")
+            else:
+                text = re.split(r"(?<=。)|(?<=\.\s)", text)
+                nt = []
+                if isinstance(text, list):
+                    for t in text:
+                        if t:
+                            nt.append(t)
+                    text = nt
+                else:
+                    text = [text]
+            self.logger.info("split text into %d parts", len(text))
+            self.logger.debug("%s", str(text))
+
+        if len(text) == 0:
+            return []
+
         res_gen = self._infer(
             text,
             stream,
@@ -224,11 +252,22 @@ class Chat:
             use_decoder,
             do_text_normalization,
             do_homophone_replacement,
+            split_text,
+            max_split_batch,
             params_refine_text,
             params_infer_code,
         )
         if stream:
             return res_gen
+        elif not refine_text_only:
+            stripped_wavs = []
+            thr = np.float32(1e-5)
+            for wavs in res_gen:
+                for wav in wavs:
+                    stripped_wavs.append(wav[np.abs(wav) > thr])
+            if split_text:
+                return [np.concatenate(stripped_wavs)]
+            return stripped_wavs
         else:
             return next(res_gen)
 
@@ -241,17 +280,22 @@ class Chat:
         vocos_ckpt_path: str = None,
         dvae_ckpt_path: str = None,
         gpt_ckpt_path: str = None,
+        embed_path: str = None,
         decoder_ckpt_path: str = None,
         tokenizer_path: str = None,
         device: Optional[torch.device] = None,
-        compile: bool = True,
+        compile: bool = False,
         coef: Optional[str] = None,
         use_flash_attn=False,
+        use_vllm=False,
+        experimental: bool = False,
+        enable_cache=True,
     ):
         if device is None:
-            device = select_device()
+            device = select_device(experimental=experimental)
             self.logger.info("use device %s", str(device))
         self.device = device
+        self.device_gpt = device if "mps" not in str(device) else torch.device("cpu")
         self.compile = compile
 
         feature_extractor = instantiate_class(
@@ -262,75 +306,81 @@ class Chat:
         vocos = (
             Vocos(feature_extractor=feature_extractor, backbone=backbone, head=head)
             .to(
-                # vocos on mps will crash, use cpu fallback
+                # Vocos on mps will crash, use cpu fallback.
+                # Plus, complex dtype used in the decode process of Vocos is not supported in torch_npu now,
+                # so we put this calculation of data on CPU instead of NPU.
                 "cpu"
-                if "mps" in str(device)
+                if "mps" in str(device) or "npu" in str(device)
                 else device
             )
             .eval()
         )
         assert vocos_ckpt_path, "vocos_ckpt_path should not be None"
-        vocos.load_state_dict(torch.load(vocos_ckpt_path, weights_only=True, mmap=True))
+        vocos.load_state_dict(load_safetensors(vocos_ckpt_path))
         self.vocos = vocos
         self.logger.log(logging.INFO, "vocos loaded.")
 
-        dvae = (
-            DVAE(
-                decoder_config=asdict(self.config.dvae.decoder),
-                encoder_config=asdict(self.config.dvae.encoder),
-                vq_config=asdict(self.config.dvae.vq),
-                dim=self.config.dvae.decoder.idim,
-                coef=coef,
-            )
-            .to(device)
-            .eval()
+        # computation of MelSpectrogram on npu is not support now, use cpu fallback.
+        dvae_device = torch.device("cpu") if "npu" in str(self.device) else device
+        dvae = DVAE(
+            decoder_config=asdict(self.config.dvae.decoder),
+            encoder_config=asdict(self.config.dvae.encoder),
+            vq_config=asdict(self.config.dvae.vq),
+            dim=self.config.dvae.decoder.idim,
+            coef=coef,
+            device=dvae_device,
         )
         coef = str(dvae)
         assert dvae_ckpt_path, "dvae_ckpt_path should not be None"
-        dvae.load_state_dict(torch.load(dvae_ckpt_path, weights_only=True, mmap=True))
-        self.dvae = dvae
+        dvae.load_pretrained(dvae_ckpt_path, dvae_device)
+        self.dvae = dvae.eval()
         self.logger.log(logging.INFO, "dvae loaded.")
+
+        embed = Embed(
+            self.config.embed.hidden_size,
+            self.config.embed.num_audio_tokens,
+            self.config.embed.num_text_tokens,
+            self.config.embed.num_vq,
+        )
+        embed.load_pretrained(embed_path, device=device)
+        self.embed = embed.to(device)
+        self.logger.log(logging.INFO, "embed loaded.")
 
         gpt = GPT(
             gpt_config=asdict(self.config.gpt),
+            embed=self.embed,
             use_flash_attn=use_flash_attn,
+            use_vllm=use_vllm,
             device=device,
+            device_gpt=self.device_gpt,
             logger=self.logger,
+            enable_cache=enable_cache,
         ).eval()
         assert gpt_ckpt_path, "gpt_ckpt_path should not be None"
-        gpt.from_pretrained(gpt_ckpt_path)
+        gpt.load_pretrained(gpt_ckpt_path, embed_path, experimental=experimental)
         gpt.prepare(compile=compile and "cuda" in str(device))
         self.gpt = gpt
-        spk_stat_path = os.path.join(os.path.dirname(gpt_ckpt_path), "spk_stat.pt")
-        assert os.path.exists(spk_stat_path), f"Missing spk_stat.pt: {spk_stat_path}"
-        spk_stat: torch.Tensor = torch.load(
-            spk_stat_path,
-            weights_only=True,
-            mmap=True,
-            map_location=device,
-        )
-        self.std, self.mean = spk_stat.requires_grad_(False).chunk(2)
         self.logger.log(logging.INFO, "gpt loaded.")
 
-        decoder = (
-            DVAE(
-                decoder_config=asdict(self.config.decoder),
-                dim=self.config.decoder.idim,
-                coef=coef,
-            )
-            .to(device)
-            .eval()
+        self.speaker = Speaker(
+            self.config.gpt.hidden_size, self.config.spk_stat, device
+        )
+        self.logger.log(logging.INFO, "speaker loaded.")
+
+        decoder = DVAE(
+            decoder_config=asdict(self.config.decoder),
+            dim=self.config.decoder.idim,
+            coef=coef,
+            device=device,
         )
         coef = str(decoder)
         assert decoder_ckpt_path, "decoder_ckpt_path should not be None"
-        decoder.load_state_dict(
-            torch.load(decoder_ckpt_path, weights_only=True, mmap=True)
-        )
-        self.decoder = decoder
+        decoder.load_pretrained(decoder_ckpt_path, device)
+        self.decoder = decoder.eval()
         self.logger.log(logging.INFO, "decoder loaded.")
 
         if tokenizer_path:
-            self.tokenizer = Tokenizer(tokenizer_path, device)
+            self.tokenizer = Tokenizer(tokenizer_path)
             self.logger.log(logging.INFO, "tokenizer loaded.")
 
         self.coef = coef
@@ -339,7 +389,7 @@ class Chat:
 
     def _infer(
         self,
-        text,
+        text: Union[List[str], str],
         stream=False,
         lang=None,
         skip_refine_text=False,
@@ -347,6 +397,8 @@ class Chat:
         use_decoder=True,
         do_text_normalization=True,
         do_homophone_replacement=True,
+        split_text=True,
+        max_split_batch=4,
         params_refine_text=RefineTextParams(),
         params_infer_code=InferCodeParams(),
     ):
@@ -366,6 +418,8 @@ class Chat:
             for t in text
         ]
 
+        self.logger.debug("normed texts %s", str(text))
+
         if not skip_refine_text:
             refined = self._refine_text(
                 text,
@@ -375,64 +429,87 @@ class Chat:
             text_tokens = refined.ids
             text_tokens = [i[i.less(self.tokenizer.break_0_ids)] for i in text_tokens]
             text = self.tokenizer.decode(text_tokens)
+            self.logger.debug("refined texts %s", str(text))
             refined.destroy()
             if refine_text_only:
+                if split_text and isinstance(text, list):
+                    text = "\n".join(text)
                 yield text
                 return
 
-        if stream:
-            length = 0
-            pass_batch_count = 0
-        for result in self._infer_code(
-            text,
-            stream,
-            self.device,
-            use_decoder,
-            params_infer_code,
-        ):
+        if split_text and len(text) > 1 and params_infer_code.spk_smp is None:
+            refer_text = text[0]
+            result = next(
+                self._infer_code(
+                    refer_text,
+                    False,
+                    self.device,
+                    use_decoder,
+                    params_infer_code,
+                )
+            )
             wavs = self._decode_to_wavs(
                 result.hiddens if use_decoder else result.ids,
                 use_decoder,
             )
             result.destroy()
-            if stream:
-                pass_batch_count += 1
-                if pass_batch_count <= params_infer_code.pass_first_n_batches:
-                    continue
-                a = length
-                b = a + params_infer_code.stream_speed
-                if b > wavs.shape[1]:
-                    b = wavs.shape[1]
-                new_wavs = wavs[:, a:b]
-                length = b
-                yield new_wavs
-            else:
-                yield wavs
-        if stream:
-            new_wavs = wavs[:, length:]
-            # Identify rows with non-zero elements using np.any
-            # keep_rows = np.any(array != 0, axis=1)
-            keep_cols = np.sum(new_wavs != 0, axis=0) > 0
-            # Filter both rows and columns using slicing
-            yield new_wavs[:][:, keep_cols]
+            assert len(wavs), 1
+            params_infer_code.spk_smp = self.sample_audio_speaker(wavs[0])
+            params_infer_code.txt_smp = refer_text
 
-    @staticmethod
-    @torch.no_grad()
-    def _encode_spk_emb(spk_emb: torch.Tensor) -> str:
-        arr: np.ndarray = spk_emb.to(dtype=torch.float16, device="cpu").numpy()
-        s = b14.encode_to_string(
-            lzma.compress(
-                arr.tobytes(),
-                format=lzma.FORMAT_RAW,
-                filters=[{"id": lzma.FILTER_LZMA2, "preset": 9 | lzma.PRESET_EXTREME}],
-            ),
-        )
-        del arr
-        return s
+        if stream:
+            length = 0
+            pass_batch_count = 0
+        if split_text:
+            n = len(text) // max_split_batch
+            if len(text) % max_split_batch:
+                n += 1
+        else:
+            n = 1
+            max_split_batch = len(text)
+        for i in range(n):
+            text_remain = text[i * max_split_batch :]
+            if len(text_remain) > max_split_batch:
+                text_remain = text_remain[:max_split_batch]
+            if split_text:
+                self.logger.info(
+                    "infer split %d~%d",
+                    i * max_split_batch,
+                    i * max_split_batch + len(text_remain),
+                )
+            for result in self._infer_code(
+                text_remain,
+                stream,
+                self.device,
+                use_decoder,
+                params_infer_code,
+            ):
+                wavs = self._decode_to_wavs(
+                    result.hiddens if use_decoder else result.ids,
+                    use_decoder,
+                )
+                result.destroy()
+                if stream:
+                    pass_batch_count += 1
+                    if pass_batch_count <= params_infer_code.pass_first_n_batches:
+                        continue
+                    a = length
+                    b = a + params_infer_code.stream_speed
+                    if b > wavs.shape[1]:
+                        b = wavs.shape[1]
+                    new_wavs = wavs[:, a:b]
+                    length = b
+                    yield new_wavs
+                else:
+                    yield wavs
+            if stream:
+                new_wavs = wavs[:, length:]
+                keep_cols = np.sum(np.abs(new_wavs) > 1e-5, axis=0) > 0
+                yield new_wavs[:][:, keep_cols]
 
     @torch.inference_mode()
     def _vocos_decode(self, spec: torch.Tensor) -> np.ndarray:
-        if "mps" in str(self.device):
+        if "mps" in str(self.device) or "npu" in str(self.device):
             return self.vocos.decode(spec.cpu()).cpu().numpy()
         else:
             return self.vocos.decode(spec).cpu().numpy()
@@ -484,47 +561,28 @@ class Chat:
         assert len(text), "text should not be empty"
 
         if not isinstance(params.temperature, list):
-            temperature = [params.temperature] * gpt.num_vq
+            temperature = [params.temperature] * self.config.gpt.num_vq
         else:
             temperature = params.temperature
 
-        for i, t in enumerate(text):
-            text[i] = (
-                t.replace("[Stts]", "")
-                .replace("[spk_emb]", "")
-                .replace("[empty_spk]", "")
-                .strip()
-            )
-            """
-            see https://github.com/2noise/ChatTTS/issues/459
-            """
-
-        if params.prompt:
-            text = [params.prompt + i for i in text]
-
-        txt_smp = "" if params.txt_smp is None else params.txt_smp
-        if params.spk_emb is not None:
-            text = [f"[Stts][spk_emb]{txt_smp}{i}[Ptts]" for i in text]
-        else:
-            text = [f"[Stts][empty_spk]{txt_smp}{i}[Ptts]" for i in text]
-
         input_ids, attention_mask, text_mask = self.tokenizer.encode(
-            text,
-            self.gpt.num_vq,
-            prompt_str=params.spk_smp,
-            device=gpt.device_gpt,
+            self.speaker.decorate_code_prompts(
+                text,
+                params.prompt,
+                params.txt_smp,
+                params.spk_emb,
+            ),
+            self.config.gpt.num_vq,
+            prompt=(
+                self.speaker.decode_prompt(params.spk_smp)
+                if params.spk_smp is not None
+                else None
+            ),
+            device=self.device_gpt,
         )
+        start_idx = input_ids.shape[-2]
 
-        emb = gpt(input_ids, text_mask)
-
-        del text_mask
-
-        if params.spk_emb is not None:
-            self.tokenizer.apply_spk_emb(
-                emb, params.spk_emb, input_ids, self.gpt.device_gpt
-            )
-
-        num_code = int(gpt.emb_code[0].num_embeddings - 1)
+        num_code = self.config.gpt.num_audio_tokens - 1
 
         logits_warpers, logits_processors = gen_logits(
             num_code=num_code,
@@ -532,6 +590,58 @@ class Chat:
             top_K=params.top_K,
             repetition_penalty=params.repetition_penalty,
         )
+
+        if gpt.is_vllm:
+            from .model.velocity import SamplingParams
+
+            sample_params = SamplingParams(
+                temperature=temperature,
+                max_new_token=params.max_new_token,
+                max_tokens=8192,
+                min_new_token=params.min_new_token,
+                logits_processors=(logits_processors, logits_warpers),
+                eos_token=num_code,
+                infer_text=False,
+                start_idx=start_idx,
+            )
+            input_ids = [i.tolist() for i in input_ids]
+
+            result = gpt.llm.generate(
+                None,
+                sample_params,
+                input_ids,
+            )
+
+            token_ids = []
+            hidden_states = []
+            for i in result:
+                token_ids.append(torch.tensor(i.outputs[0].token_ids))
+                hidden_states.append(
+                    i.outputs[0].hidden_states.to(torch.float32).to(self.device)
+                )
+
+            del text_mask, input_ids
+
+            return [
+                GPT.GenerationOutputs(
+                    ids=token_ids,
+                    hiddens=hidden_states,
+                    attentions=[],
+                ),
+            ]
+
+        emb = self.embed(input_ids, text_mask)
+
+        del text_mask
+
+        if params.spk_emb is not None:
+            self.speaker.apply(
+                emb,
+                params.spk_emb,
+                input_ids,
+                self.tokenizer.spk_emb_ids,
+                self.gpt.device_gpt,
+            )
 
         result = gpt.generate(
             emb,
@@ -541,20 +651,18 @@ class Chat:
             attention_mask=attention_mask,
             max_new_token=params.max_new_token,
             min_new_token=params.min_new_token,
-            logits_warpers=logits_warpers,
-            logits_processors=logits_processors,
+            logits_processors=(*logits_processors, *logits_warpers),
             infer_text=False,
             return_hidden=return_hidden,
             stream=stream,
             show_tqdm=params.show_tqdm,
             ensure_non_empty=params.ensure_non_empty,
             stream_batch=params.stream_batch,
+            manual_seed=params.manual_seed,
             context=self.context,
         )
 
         del emb, input_ids
-        del_all(logits_warpers)
-        del_all(logits_processors)
 
         return result
 
@@ -571,12 +679,10 @@ class Chat:
         if not isinstance(text, list):
             text = [text]
 
-        text = [f"[Sbreak]{i}[Pbreak]{params.prompt}" for i in text]
-
         input_ids, attention_mask, text_mask = self.tokenizer.encode(
-            text,
-            self.gpt.num_vq,
-            device=gpt.device_gpt,
+            self.speaker.decorate_text_prompts(text, params.prompt),
+            self.config.gpt.num_vq,
+            device=self.device_gpt,
         )
 
         logits_warpers, logits_processors = gen_logits(
@@ -586,7 +692,43 @@ class Chat:
             repetition_penalty=params.repetition_penalty,
         )
 
-        emb = gpt(input_ids, text_mask)
+        if gpt.is_vllm:
+            from .model.velocity import SamplingParams
+
+            sample_params = SamplingParams(
+                repetition_penalty=params.repetition_penalty,
+                temperature=params.temperature,
+                top_p=params.top_P,
+                top_k=params.top_K,
+                max_new_token=params.max_new_token,
+                max_tokens=8192,
+                min_new_token=params.min_new_token,
+                logits_processors=(logits_processors, logits_warpers),
+                eos_token=self.tokenizer.eos_token,
+                infer_text=True,
+                start_idx=input_ids.shape[-2],
+            )
+            input_ids_list = [i.tolist() for i in input_ids]
+            del input_ids
+
+            result = gpt.llm.generate(
+                None, sample_params, input_ids_list, params.show_tqdm
+            )
+            token_ids = []
+            hidden_states = []
+            for i in result:
+                token_ids.append(torch.tensor(i.outputs[0].token_ids))
+                hidden_states.append(i.outputs[0].hidden_states)
+
+            del text_mask, input_ids_list, result
+
+            return GPT.GenerationOutputs(
+                ids=token_ids,
+                hiddens=hidden_states,
+                attentions=[],
+            )
+
+        emb = self.embed(input_ids, text_mask)
 
         del text_mask
 
@@ -599,18 +741,16 @@ class Chat:
                 attention_mask=attention_mask,
                 max_new_token=params.max_new_token,
                 min_new_token=params.min_new_token,
-                logits_warpers=logits_warpers,
-                logits_processors=logits_processors,
+                logits_processors=(*logits_processors, *logits_warpers),
                 infer_text=True,
                 stream=False,
                 show_tqdm=params.show_tqdm,
                 ensure_non_empty=params.ensure_non_empty,
+                manual_seed=params.manual_seed,
                 context=self.context,
             )
         )
 
         del emb, input_ids
-        del_all(logits_warpers)
-        del_all(logits_processors)
 
         return result

@@ -1,99 +1,96 @@
 import platform
 from dataclasses import dataclass
 import logging
-from typing import Union, List, Optional, Tuple
+from typing import Union, List, Optional, Tuple, Callable
 import gc
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.nn.utils.parametrize as P
-from torch.nn.utils.parametrizations import weight_norm
 from tqdm import tqdm
-from transformers import LlamaModel, LlamaConfig, LogitsWarper
+from transformers import LlamaModel, LlamaConfig
 from transformers.cache_utils import Cache
 from transformers.modeling_outputs import BaseModelOutputWithPast
 from transformers.utils import is_flash_attn_2_available
 
-from .processors import CustomRepetitionPenaltyLogitsProcessorRepeat
 from ..utils import del_all
+from .embed import Embed
 
 
 class GPT(nn.Module):
     def __init__(
         self,
         gpt_config: dict,
-        num_audio_tokens: int = 626,
-        num_text_tokens: int = 21178,
-        num_vq=4,
+        embed: Embed,
         use_flash_attn=False,
+        use_vllm=False,
         device=torch.device("cpu"),
+        device_gpt=torch.device("cpu"),
         logger=logging.getLogger(__name__),
+        enable_cache=True,
     ):
         super().__init__()
 
         self.logger = logger
 
         self.device = device
-        self.device_gpt = device if "mps" not in str(device) else torch.device("cpu")
+        self.device_gpt = device_gpt
 
-        self.num_vq = num_vq
-        self.num_audio_tokens = num_audio_tokens
+        self.enable_cache = enable_cache
+
+        self.generator = torch.Generator(device=device)
+
+        self.num_vq = int(gpt_config["num_vq"])
+        self.num_audio_tokens = int(gpt_config["num_audio_tokens"])
+        self.num_text_tokens = int(gpt_config["num_text_tokens"])
 
         self.use_flash_attn = use_flash_attn
-
-        self.gpt, self.llama_config = self._build_llama(gpt_config, self.device_gpt)
         self.is_te_llama = False
-        self.model_dim = int(self.gpt.config.hidden_size)
-        self.emb_code = nn.ModuleList(
-            [
-                nn.Embedding(
-                    num_audio_tokens,
-                    self.model_dim,
-                    device=self.device_gpt,
-                )
-                for _ in range(num_vq)
-            ],
-        )
-        self.emb_text = nn.Embedding(
-            num_text_tokens, self.model_dim, device=self.device_gpt
-        )
+        self.is_vllm = use_vllm
 
-        self.head_text = weight_norm(
-            nn.Linear(
-                self.model_dim,
-                num_text_tokens,
-                bias=False,
-                device=device,
-            ),
-            name="weight",
-        )
-        self.head_code = nn.ModuleList(
-            [
-                weight_norm(
-                    nn.Linear(
-                        self.model_dim,
-                        num_audio_tokens,
-                        bias=False,
-                        device=device,
-                    ),
-                    name="weight",
-                )
-                for _ in range(self.num_vq)
-            ],
-        )
+        if self.is_vllm:
+            return
 
-    def from_pretrained(self, file_path: str):
+        self.llama_config = self._build_llama_config(gpt_config)
 
-        self.load_state_dict(torch.load(file_path, weights_only=True, mmap=True))
+        self.emb_code = [ec.__call__ for ec in embed.emb_code]
+        self.emb_text = embed.emb_text.__call__
+        self.head_text = embed.head_text.__call__
+        self.head_code = [hc.__call__ for hc in embed.head_code]
+
+    def load_pretrained(
+        self, gpt_folder: str, embed_file_path: str, experimental=False
+    ):
+        if self.is_vllm and platform.system().lower() == "linux":
+
+            from .velocity import LLM
+
+            self.llm = LLM(
+                model=gpt_folder,
+                num_audio_tokens=self.num_audio_tokens,
+                num_text_tokens=self.num_text_tokens,
+                post_model_path=embed_file_path,
+            )
+            self.logger.info("vLLM model loaded")
+            return
+
+        self.gpt: LlamaModel = LlamaModel.from_pretrained(gpt_folder).to(
+            self.device_gpt
+        )
+        del self.gpt.embed_tokens
 
         if (
-            "cuda" in str(self.device_gpt) and platform.system().lower() == "linux"
+            experimental
+            and "cuda" in str(self.device_gpt)
+            and platform.system().lower() == "linux"
         ):  # is TELlamaModel
             try:
                 from .cuda import TELlamaModel
 
-                self.logger.info("Linux with CUDA, try NVIDIA accelerated TELlamaModel")
+                self.logger.warning(
+                    "Linux with CUDA, try NVIDIA accelerated TELlamaModel because experimental is enabled"
+                )
                 state_dict = self.gpt.state_dict()
                 vanilla = TELlamaModel.from_state_dict(state_dict, self.llama_config)
                 # Force mem release. Taken from huggingface code
@@ -116,10 +113,9 @@ class GPT(nn.Module):
         def get(self) -> bool:
             return self._interrupt
 
-    def _build_llama(
+    def _build_llama_config(
         self,
         config: dict,
-        device: torch.device,
     ) -> Tuple[LlamaModel, LlamaConfig]:
 
         if self.use_flash_attn and is_flash_attn_2_available():
@@ -133,63 +129,22 @@ class GPT(nn.Module):
         else:
             llama_config = LlamaConfig(**config)
 
-        model = LlamaModel(llama_config)
-        del model.embed_tokens
-
-        return model.to(device), llama_config
+        return llama_config
 
     def prepare(self, compile=False):
         if self.use_flash_attn and is_flash_attn_2_available():
             self.gpt = self.gpt.to(dtype=torch.float16)
-        if compile and not self.is_te_llama:
+        if compile and not self.is_te_llama and not self.is_vllm:
             try:
                 self.compile(backend="inductor", dynamic=True)
                 self.gpt.compile(backend="inductor", dynamic=True)
             except RuntimeError as e:
                 self.logger.warning(f"compile failed: {e}. fallback to normal mode.")
 
-    def __call__(
-        self, input_ids: torch.Tensor, text_mask: torch.Tensor
-    ) -> torch.Tensor:
-        """
-        get_emb
-        """
-        return super().__call__(input_ids, text_mask)
-
-    def forward(self, input_ids: torch.Tensor, text_mask: torch.Tensor) -> torch.Tensor:
-        """
-        get_emb
-        """
-
-        emb_text: torch.Tensor = self.emb_text(
-            input_ids[text_mask].narrow(1, 0, 1).squeeze_(1).to(self.device_gpt)
-        )
-
-        text_mask_inv = text_mask.logical_not().to(self.device_gpt)
-        masked_input_ids: torch.Tensor = input_ids[text_mask_inv].to(self.device_gpt)
-
-        emb_code = [
-            self.emb_code[i](masked_input_ids[:, i]) for i in range(self.num_vq)
-        ]
-        emb_code = torch.stack(emb_code, 2).sum(2)
-
-        emb = torch.zeros(
-            (input_ids.shape[:-1]) + (emb_text.shape[-1],),
-            device=emb_text.device,
-            dtype=emb_text.dtype,
-        )
-        emb[text_mask] = emb_text
-        emb[text_mask_inv] = emb_code.to(emb.dtype)
-
-        del emb_text, emb_code, text_mask_inv
-
-        return emb
-
     @dataclass(repr=False, eq=False)
     class _GenerationInputs:
         position_ids: torch.Tensor
         cache_position: torch.Tensor
-        use_cache: bool
         input_ids: Optional[torch.Tensor] = None
         past_key_values: Optional[Tuple[Tuple[torch.FloatTensor]]] = None
         attention_mask: Optional[torch.Tensor] = None
@@ -205,15 +160,15 @@ class GPT(nn.Module):
             if self.cache_position is not None:
                 self.cache_position = self.cache_position.to(device, dtype=dtype)
 
+    @torch.no_grad()
     def _prepare_generation_inputs(
         self,
         input_ids: torch.Tensor,
-        past_key_values: Optional[Tuple[Tuple[torch.FloatTensor]]] = None,
+        past_key_values: Optional[Union[Tuple[Tuple[torch.FloatTensor]], Cache]] = None,
         attention_mask: Optional[torch.Tensor] = None,
         inputs_embeds: Optional[torch.Tensor] = None,
         cache_position: Optional[torch.Tensor] = None,
         position_ids: Optional[torch.Tensor] = None,
-        use_cache=True,
     ) -> _GenerationInputs:
         # With static cache, the `past_key_values` is None
         # TODO joao: standardize interface for the different Cache classes and remove of this if
@@ -226,23 +181,30 @@ class GPT(nn.Module):
             has_static_cache = past_key_values is not None
 
         past_length = 0
+        max_cache_length = None
+        cache_length = 0
         if past_key_values is not None:
             if isinstance(past_key_values, Cache):
-                past_length = (
-                    int(cache_position[0])
-                    if cache_position is not None
-                    else past_key_values.get_seq_length()
-                )
-                max_cache_length = past_key_values.get_max_length()
-                cache_length = (
-                    past_length
-                    if max_cache_length is None
-                    else min(max_cache_length, past_length)
-                )
+                if past_key_values.layers and len(past_key_values.layers):
+                    past_length = (
+                        int(cache_position[0])
+                        if cache_position is not None
+                        else past_key_values.get_seq_length()
+                    )
+                    try:
+                        max_cache_length = past_key_values.get_max_cache_shape()
+                    except:
+                        max_cache_length = (
+                            past_key_values.get_max_length()
+                        )  # deprecated in transformers 4.48
+                    cache_length = (
+                        past_length
+                        if max_cache_length is None
+                        else min(max_cache_length, past_length)
+                    )
             # TODO joao: remove this `else` after `generate` prioritizes `Cache` objects
             else:
                 cache_length = past_length = past_key_values[0][0].shape[2]
-                max_cache_length = None
 
             # Keep only the unprocessed tokens:
             # 1 - If the length of the attention_mask exceeds the length of input_ids, then we are in a setting where
@@ -265,6 +227,7 @@ class GPT(nn.Module):
             # If we are about to go beyond the maximum cache length, we need to crop the input attention mask.
             if (
                 max_cache_length is not None
+                and max_cache_length > 0
                 and attention_mask is not None
                 and cache_length + input_ids.shape[1] > max_cache_length
             ):
@@ -297,7 +260,6 @@ class GPT(nn.Module):
         model_inputs = self._GenerationInputs(
             position_ids=position_ids,
             cache_position=cache_position,
-            use_cache=use_cache,
         )
 
         # if `inputs_embeds` are passed, we only want to use them in the 1st generation step
@@ -325,6 +287,7 @@ class GPT(nn.Module):
             del_all(self.attentions)
             del_all(self.hiddens)
 
+    @torch.no_grad()
     def _prepare_generation_outputs(
         self,
         inputs_ids: torch.Tensor,
@@ -334,22 +297,27 @@ class GPT(nn.Module):
         hiddens: List[torch.Tensor],
         infer_text: bool,
     ) -> GenerationOutputs:
-        inputs_ids = [
-            inputs_ids[idx].narrow(0, start_idx, i) for idx, i in enumerate(end_idx)
+        end_idx_int = end_idx.int()
+
+        inputs_ids_lst = [
+            inputs_ids[idx].narrow(0, start_idx, int(i))
+            for idx, i in enumerate(end_idx_int)
         ]
         if infer_text:
-            inputs_ids = [i.narrow(1, 0, 1).squeeze_(1) for i in inputs_ids]
+            inputs_ids_lst = [i.narrow(1, 0, 1).squeeze_(1) for i in inputs_ids_lst]
 
+        hiddens_lst = []
         if len(hiddens) > 0:
-            hiddens = torch.stack(hiddens, 1)
-            hiddens = [
-                hiddens[idx].narrow(0, 0, i) for idx, i in enumerate(end_idx.int())
+            hiddens_lst = torch.stack(hiddens, 1)
+            hiddens_lst = [
+                hiddens_lst[idx].narrow(0, 0, int(i))
+                for idx, i in enumerate(end_idx_int)
             ]
 
         return self.GenerationOutputs(
-            ids=inputs_ids,
+            ids=inputs_ids_lst,
             attentions=attentions,
-            hiddens=hiddens,
+            hiddens=hiddens_lst,
         )
 
     @torch.no_grad()
@@ -362,8 +330,9 @@ class GPT(nn.Module):
         attention_mask: Optional[torch.Tensor] = None,
         max_new_token=2048,
         min_new_token=0,
-        logits_warpers: List[LogitsWarper] = [],
-        logits_processors: List[CustomRepetitionPenaltyLogitsProcessorRepeat] = [],
+        logits_processors: Tuple[
+            Callable[[torch.LongTensor, torch.FloatTensor], torch.FloatTensor]
+        ] = (),
         infer_text=False,
         return_attn=False,
         return_hidden=False,
@@ -371,8 +340,11 @@ class GPT(nn.Module):
         show_tqdm=True,
         ensure_non_empty=True,
         stream_batch=24,
+        manual_seed: Optional[int] = None,
         context=Context(),
     ):
+
+        self.logger.debug("start generate")
 
         attentions: List[Optional[Tuple[torch.FloatTensor, ...]]] = []
         hiddens = []
@@ -383,6 +355,10 @@ class GPT(nn.Module):
         )
         finish = torch.zeros(inputs_ids.shape[0], device=inputs_ids.device).bool()
 
+        self.logger.debug(
+            f"set start_idx: {start_idx}, end_idx and finish with all zeros, len {inputs_ids.shape[0]}"
+        )
+
         old_temperature = temperature
 
         temperature = (
@@ -390,6 +366,10 @@ class GPT(nn.Module):
             .expand(inputs_ids.shape[0], -1)
             .contiguous()
             .view(-1, 1)
+        )
+
+        self.logger.debug(
+            f"expand temperature from shape {old_temperature.shape} to {temperature.shape}"
         )
 
         attention_mask_cache = torch.ones(
@@ -400,10 +380,14 @@ class GPT(nn.Module):
             dtype=torch.bool,
             device=inputs_ids.device,
         )
+        self.logger.debug(
+            f"init attention_mask_cache with shape {attention_mask_cache.shape}"
+        )
         if attention_mask is not None:
             attention_mask_cache.narrow(1, 0, attention_mask.shape[1]).copy_(
                 attention_mask
             )
+            self.logger.debug(f"copy attention_mask with shape {attention_mask.shape}")
 
         progress = inputs_ids.size(1)
         # pre-allocate inputs_ids
@@ -415,6 +399,9 @@ class GPT(nn.Module):
             device=inputs_ids.device,
         )
         inputs_ids_buf.narrow(1, 0, progress).copy_(inputs_ids)
+        self.logger.debug(
+            f"expand inputs_ids buf from shape {inputs_ids.shape} to {inputs_ids_buf.shape}"
+        )
         del inputs_ids
         inputs_ids = inputs_ids_buf.narrow(1, 0, progress)
 
@@ -431,38 +418,46 @@ class GPT(nn.Module):
 
         for i in range(max_new_token):
 
+            self.logger.debug("start _prepare_generation_inputs")
             model_input = self._prepare_generation_inputs(
                 inputs_ids,
                 past_key_values,
                 attention_mask_cache.narrow(1, 0, inputs_ids.shape[1]),
-                use_cache=not self.is_te_llama,
             )
+            self.logger.debug("finis _prepare_generation_inputs")
 
             if i > 0:
                 del emb
                 inputs_ids_emb = model_input.input_ids.to(self.device_gpt)
                 if infer_text:
+                    self.logger.debug("start emb_text")
                     emb: torch.Tensor = self.emb_text(inputs_ids_emb[:, :, 0])
+                    self.logger.debug("finis emb_text")
                 else:
+                    self.logger.debug("start code_emb")
                     code_emb = [
-                        self.emb_code[i](inputs_ids_emb[:, :, i])
+                        self.emb_code[i](inputs_ids_emb[:, :, i]).to(self.device)
                         for i in range(self.num_vq)
                     ]
                     emb = torch.stack(code_emb, 3).sum(3)
+                    self.logger.debug("finis code_emb")
                 del inputs_ids_emb, model_input.input_ids
             model_input.inputs_embeds = emb
 
+            self.logger.debug(f"move model_input to device_gpt: {str(self.device_gpt)}")
             model_input.to(self.device_gpt, self.gpt.dtype)
 
+            self.logger.debug("start gpt...")
             outputs: BaseModelOutputWithPast = self.gpt(
                 attention_mask=model_input.attention_mask,
                 position_ids=model_input.position_ids,
                 past_key_values=model_input.past_key_values,
                 inputs_embeds=model_input.inputs_embeds,
-                use_cache=model_input.use_cache,
+                use_cache=not self.is_te_llama and self.enable_cache,
                 output_attentions=return_attn,
                 cache_position=model_input.cache_position,
             )
+            self.logger.debug("finis gpt")
             del_all(model_input)
             attentions.append(outputs.attentions)
             hidden_states = outputs.last_hidden_state.to(
@@ -475,8 +470,11 @@ class GPT(nn.Module):
 
             with P.cached():
                 if infer_text:
+                    self.logger.debug("start head_text")
                     logits: torch.Tensor = self.head_text(hidden_states)
+                    self.logger.debug("finis head_text")
                 else:
+                    self.logger.debug("start head_code")
                     # logits = torch.stack([self.head_code[i](hidden_states) for i in range(self.num_vq)], 3)
                     logits = torch.empty(
                         hidden_states.size(0),
@@ -490,9 +488,11 @@ class GPT(nn.Module):
                         x: torch.Tensor = self.head_code[num_vq_iter](hidden_states)
                         logits[..., num_vq_iter] = x
                         del x
+                    self.logger.debug("finis head_code")
 
             del hidden_states
 
+            self.logger.debug("start logits")
             # logits = logits[:, -1].float()
             logits = logits.narrow(1, -1, 1).squeeze_(1).float()
 
@@ -527,9 +527,6 @@ class GPT(nn.Module):
             for logitsProcessors in logits_processors:
                 logits = logitsProcessors(logits_token, logits)
 
-            for logitsWarpers in logits_warpers:
-                logits = logitsWarpers(logits_token, logits)
-
             del logits_token
 
             if i < min_new_token:
@@ -539,9 +536,23 @@ class GPT(nn.Module):
 
             del logits
 
-            idx_next = torch.multinomial(scores, num_samples=1).to(finish.device)
+            self.logger.debug("finis logits")
+
+            self.logger.debug("start seed")
+            if manual_seed is None:
+                idx_next = torch.multinomial(scores, num_samples=1).to(finish.device)
+            else:
+                idx_next = torch.multinomial(
+                    scores,
+                    num_samples=1,
+                    generator=self.generator.manual_seed(manual_seed),
+                ).to(finish.device)
 
             del scores
+
+            self.logger.debug("finis seed")
+
+            self.logger.debug("start finish")
 
             if not infer_text:
                 # idx_next = rearrange(idx_next, "(b n) 1 -> b n", n=self.num_vq)
@@ -558,12 +569,14 @@ class GPT(nn.Module):
                     idx_next.unsqueeze_(-1).expand(-1, -1, self.num_vq),
                 )
 
+            self.logger.debug("finis finish")
+
             if i == 0 and finish.any():
                 self.logger.warning(
                     "unexpected end at index %s",
                     str([unexpected_idx.item() for unexpected_idx in finish.nonzero()]),
                 )
-                if ensure_non_empty:
+                if ensure_non_empty and manual_seed is None:
                     if show_tqdm:
                         pbar.close()
                     self.logger.warning("regenerate in order to ensure non-empty")
@@ -587,7 +600,6 @@ class GPT(nn.Module):
                         attention_mask,
                         max_new_token,
                         min_new_token,
-                        logits_warpers,
                         logits_processors,
                         infer_text,
                         return_attn,
@@ -596,12 +608,15 @@ class GPT(nn.Module):
                         show_tqdm,
                         ensure_non_empty,
                         stream_batch,
+                        manual_seed,
                         context,
                     )
                     for result in new_gen:
                         yield result
                     del inputs_ids
                 return
+
+            self.logger.debug("start output")
 
             del idx_next
             progress += 1
@@ -622,6 +637,8 @@ class GPT(nn.Module):
                         infer_text,
                     )
             del not_finished
+
+            self.logger.debug("finis output")
 
             if finish.all() or context.get():
                 break

@@ -1,13 +1,14 @@
 import math
-from typing import List, Optional, Literal, Tuple
+from typing import List, Optional, Literal, Union
 
 import numpy as np
 import pybase16384 as b14
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import torchaudio
 from vector_quantize_pytorch import GroupedResidualFSQ
+
+from ..utils import load_safetensors
 
 
 class ConvNeXtBlock(nn.Module):
@@ -36,7 +37,7 @@ class ConvNeXtBlock(nn.Module):
         )  # pointwise/1x1 convs, implemented with linear layers
         self.act = nn.GELU()
         self.pwconv2 = nn.Linear(intermediate_dim, dim)
-        self.gamma = (
+        self.weight = (
             nn.Parameter(layer_scale_init_value * torch.ones(dim), requires_grad=True)
             if layer_scale_init_value > 0
             else None
@@ -55,8 +56,8 @@ class ConvNeXtBlock(nn.Module):
         del y
         y = self.pwconv2(x)
         del x
-        if self.gamma is not None:
-            y *= self.gamma
+        if self.weight is not None:
+            y *= self.weight
         y.transpose_(1, 2)  # (B, T, C) -> (B, C, T)
 
         x = y + residual
@@ -179,8 +180,10 @@ class MelSpectrogramFeatures(torch.nn.Module):
         hop_length=256,
         n_mels=100,
         padding: Literal["center", "same"] = "center",
+        device: torch.device = torch.device("cpu"),
     ):
         super().__init__()
+        self.device = device
         if padding not in ["center", "same"]:
             raise ValueError("Padding must be 'center' or 'same'.")
         self.padding = padding
@@ -197,6 +200,7 @@ class MelSpectrogramFeatures(torch.nn.Module):
         return super().__call__(audio)
 
     def forward(self, audio: torch.Tensor) -> torch.Tensor:
+        audio = audio.to(self.device)
         mel: torch.Tensor = self.mel_spec(audio)
         features = torch.log(torch.clip(mel, min=1e-5))
         return features
@@ -210,13 +214,14 @@ class DVAE(nn.Module):
         vq_config: Optional[dict] = None,
         dim=512,
         coef: Optional[str] = None,
+        device: torch.device = torch.device("cpu"),
     ):
         super().__init__()
         if coef is None:
             coef = torch.rand(100)
         else:
             coef = torch.from_numpy(
-                np.copy(np.frombuffer(b14.decode_from_string(coef), dtype=np.float32))
+                np.frombuffer(b14.decode_from_string(coef), dtype=np.float32).copy()
             )
         self.register_buffer("coef", coef.unsqueeze(0).unsqueeze_(2))
 
@@ -227,7 +232,7 @@ class DVAE(nn.Module):
                 nn.Conv1d(dim, dim, 4, 2, 1),
                 nn.GELU(),
             )
-            self.preprocessor_mel = MelSpectrogramFeatures()
+            self.preprocessor_mel = MelSpectrogramFeatures(device=device)
             self.encoder: Optional[DVAEDecoder] = DVAEDecoder(**encoder_config)
 
         self.decoder = DVAEDecoder(**decoder_config)
@@ -246,6 +251,12 @@ class DVAE(nn.Module):
         self, inp: torch.Tensor, mode: Literal["encode", "decode"] = "decode"
     ) -> torch.Tensor:
         return super().__call__(inp, mode)
+
+    @torch.inference_mode()
+    def load_pretrained(self, filename: str, device: torch.device):
+        state_dict_tensors = load_safetensors(filename)
+        self.load_state_dict(state_dict_tensors)
+        self.to(device)
 
     @torch.inference_mode()
     def forward(
@@ -284,3 +295,9 @@ class DVAE(nn.Module):
         del vq_feats
 
         return torch.mul(dec_out, self.coef, out=dec_out)
+
+    @torch.inference_mode()
+    def sample_audio(self, wav: Union[np.ndarray, torch.Tensor]) -> torch.Tensor:
+        if isinstance(wav, np.ndarray):
+            wav = torch.from_numpy(wav)
+        return self(wav, "encode").squeeze_(0)
