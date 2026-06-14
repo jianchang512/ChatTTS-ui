@@ -169,7 +169,6 @@ Open the `.env` file with a text editor to modify the configuration:
 WEB_ADDRESS=127.0.0.1:9966 # Modify the Web service address and port
 compile=false 
 device=default # Defaults to CUDA (if VRAM > 4GB) or MPS. You can manually set this to cpu, mps, or cuda
-endpoint=https://hf-mirror.com # Model download source. Defaults to a mirror. Change to https://huggingface.co if accessible.
 ```
 
 ## [FAQ & Troubleshooting](faq.md)
